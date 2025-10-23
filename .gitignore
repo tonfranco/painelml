@@ -6,10 +6,10 @@ node_modules/
 .DS_Store
 
 # Env secrets
-.env
-.env.*
-**/.env
-**/.env.*
+# .env
+# .env.*
+# **/.env
+# **/.env.*
 
 # Build outputs
 .turbo/
