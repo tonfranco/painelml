@@ -1,0 +1,19 @@
+# Node & monorepo
+node_modules/
+.pnpm-store/
+
+# OS
+.DS_Store
+
+# Env secrets
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Build outputs
+.turbo/
+.next/
+dist/
+coverage/
+.eslintcache
