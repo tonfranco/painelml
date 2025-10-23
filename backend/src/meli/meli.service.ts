@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import axios from 'axios';
 import { randomUUID } from 'crypto';
 import { generateVerifier, generateChallenge } from './pkce';
@@ -38,12 +38,16 @@ export class MeliService {
     return { url: url.toString(), state };
   }
 
-  async handleCallback(params: { code?: string; state?: string }) {
+  async handleCallback(params: { code?: string; state?: string }, cookieState?: string) {
     const { code, state } = params;
     if (!code || !state) {
       throw new Error('invalid_oauth_callback');
     }
-    const entry = MEM_STATE.get(state);
+    let entry = MEM_STATE.get(state);
+    // Fallback: if memory lost (e.g., restart), accept when signed cookie matches state
+    if (!entry && cookieState && cookieState === state) {
+      entry = { verifier: '', createdAt: Date.now() };
+    }
     if (!entry) {
       throw new Error('invalid_state');
     }
@@ -58,16 +62,23 @@ export class MeliService {
     body.set('client_secret', clientSecret);
     body.set('code', code);
     body.set('redirect_uri', redirectUri);
-    // Se ML suportar PKCE no futuro, incluir: code_verifier
-    // body.set('code_verifier', entry.verifier);
+    // PKCE: Mercado Livre exige code_verifier quando usamos code_challenge
+    if (entry.verifier && entry.verifier.length > 0) {
+      body.set('code_verifier', entry.verifier);
+    } else {
+      // Não conseguimos recuperar o verifier (ex.: backend reiniciou antes do callback)
+      this.logger.error('PKCE code_verifier ausente para o OAuth callback');
+      throw new HttpException(
+        {
+          message: 'pkce_verifier_missing',
+          hint: 'Refaça a conexão clicando novamente em "Conectar conta Mercado Livre" para reiniciar o fluxo OAuth.',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
     const tokenUrl = 'https://api.mercadolibre.com/oauth/token';
-    const resp = await axios.post(tokenUrl, body, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      timeout: 10000,
-    });
-
-    const data = resp.data as {
+    let data: {
       access_token: string;
       token_type: string;
       expires_in: number;
@@ -75,6 +86,37 @@ export class MeliService {
       user_id?: number;
       refresh_token: string;
     };
+    try {
+      const resp = await axios.post(tokenUrl, body, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 15000,
+        validateStatus: () => true,
+      });
+      if (resp.status < 200 || resp.status >= 300) {
+        this.logger.error(`Token exchange failed: status=${resp.status} data=${JSON.stringify(resp.data)}`);
+        throw new HttpException(
+          {
+            message: 'mercadolibre_token_exchange_failed',
+            status: resp.status,
+            details: resp.data,
+          },
+          resp.status >= 500 ? HttpStatus.BAD_GATEWAY : HttpStatus.BAD_REQUEST,
+        );
+      }
+      data = resp.data as any;
+    } catch (err: any) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      this.logger.error(`Token exchange error`, err?.response?.data || err?.message || err);
+      throw new HttpException(
+        {
+          message: 'mercadolibre_token_exchange_error',
+          details: err?.response?.data || err?.message || 'unknown_error',
+        },
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
 
     const accountId = String(data.user_id ?? 'unknown');
     MEM_TOKENS.push({
