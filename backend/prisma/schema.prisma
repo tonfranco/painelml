@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -70,4 +70,22 @@ model Order {
 
   @@index([accountId])
   @@index([dateCreated])
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique // Dedupe: event_id do Mercado Livre
+  topic       String   // orders, items, etc.
+  resource    String   // URL do recurso afetado
+  userId      String   // user_id do ML
+  attempts    Int      @default(0)
+  processed   Boolean  @default(false)
+  payload     String   // JSON completo do webhook
+  receivedAt  DateTime @default(now())
+  processedAt DateTime?
+
+  @@index([eventId])
+  @@index([topic])
+  @@index([processed])
+  @@index([receivedAt])
 }

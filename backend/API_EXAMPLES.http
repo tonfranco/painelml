@@ -1,0 +1,129 @@
+### Painel ML - API Examples
+### Use com REST Client (VS Code) ou Postman
+
+@baseUrl = http://localhost:4000
+
+###############################################
+# ACCOUNTS
+###############################################
+
+### Listar contas conectadas
+GET {{baseUrl}}/accounts
+
+### Status de uma conta (substitua SELLER_ID)
+GET {{baseUrl}}/accounts/123456789/status
+
+###############################################
+# OAUTH
+###############################################
+
+### Iniciar OAuth (abrir no navegador)
+# GET {{baseUrl}}/meli/oauth/start
+
+###############################################
+# WEBHOOKS
+###############################################
+
+### Estatísticas de webhooks
+GET {{baseUrl}}/meli/webhooks/stats
+
+### Eventos pendentes
+GET {{baseUrl}}/meli/webhooks/pending
+
+### Simular webhook do ML (teste local)
+POST {{baseUrl}}/meli/webhooks
+Content-Type: application/json
+
+{
+  "_id": "test-event-123",
+  "resource": "/orders/123456789",
+  "topic": "orders_v2",
+  "application_id": "123456",
+  "attempts": 1,
+  "sent": "2025-01-23T12:00:00.000Z",
+  "received": "2025-01-23T12:00:01.000Z",
+  "user_id": "987654321"
+}
+
+###############################################
+# SYNC / BACKFILL
+###############################################
+
+### Iniciar sync completo (substitua accountId)
+POST {{baseUrl}}/sync/start
+Content-Type: application/json
+
+{
+  "accountId": "clz1234567890",
+  "scope": "all",
+  "days": 30
+}
+
+### Sync apenas itens
+POST {{baseUrl}}/sync/start
+Content-Type: application/json
+
+{
+  "accountId": "clz1234567890",
+  "scope": "items",
+  "days": 30
+}
+
+### Sync apenas pedidos (últimos 7 dias)
+POST {{baseUrl}}/sync/start
+Content-Type: application/json
+
+{
+  "accountId": "clz1234567890",
+  "scope": "orders",
+  "days": 7
+}
+
+### Status do sync
+GET {{baseUrl}}/sync/status/clz1234567890
+
+###############################################
+# HEALTH CHECK
+###############################################
+
+### Health check
+GET {{baseUrl}}/
+
+###############################################
+# EXEMPLOS DE RESPOSTAS ESPERADAS
+###############################################
+
+# GET /accounts
+# {
+#   "items": [
+#     {
+#       "id": "clz1234567890",
+#       "sellerId": "123456789",
+#       "nickname": "MINHA_LOJA",
+#       "siteId": "MLB",
+#       "createdAt": "2025-01-23T12:00:00.000Z",
+#       "updatedAt": "2025-01-23T12:00:00.000Z"
+#     }
+#   ]
+# }
+
+# GET /meli/webhooks/stats
+# {
+#   "total": 150,
+#   "processed": 145,
+#   "pending": 5,
+#   "byTopic": [
+#     { "topic": "orders_v2", "count": 100 },
+#     { "topic": "items", "count": 50 }
+#   ]
+# }
+
+# GET /sync/status/:accountId
+# {
+#   "running": false,
+#   "startedAt": 1706014800000,
+#   "finishedAt": 1706015100000,
+#   "itemsProcessed": 45,
+#   "ordersProcessed": 23,
+#   "errors": []
+# }

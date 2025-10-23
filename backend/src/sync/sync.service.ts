@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AccountsService } from '../accounts/accounts.service';
 import axios from 'axios';
 
 export type SyncScope = 'items' | 'orders' | 'all';
@@ -18,7 +19,10 @@ const STATUS: Map<string, Status> = new Map();
 @Injectable()
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accountsService: AccountsService,
+  ) {}
 
   getStatus(accountId: string): Status | undefined {
     return STATUS.get(accountId);
@@ -48,15 +52,13 @@ export class SyncService {
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
     if (!account) throw new Error('account_not_found');
 
-    const latestToken = await this.prisma.accountToken.findFirst({
-      where: { accountId },
-      orderBy: { obtainedAt: 'desc' },
-    });
-    if (!latestToken) throw new Error('token_not_found');
+    // Busca tokens descriptografados
+    const tokens = await this.accountsService.getTokensForSeller(account.sellerId);
+    if (!tokens) throw new Error('token_not_found');
 
     const authCtx = {
-      accessToken: latestToken.accessToken,
-      refreshToken: latestToken.refreshToken,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     };
 
     if (scope === 'items' || scope === 'all') {
@@ -213,19 +215,24 @@ SyncService.prototype.refreshToken = async function(this: SyncService, accountId
   const resp = await axios.post(tokenUrl, body, { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 15000 });
   const data = resp.data as { access_token: string; refresh_token: string; token_type?: string; scope?: string; expires_in: number };
 
-  // Persist new token snapshot
+  // Busca conta para salvar tokens criptografados
   // @ts-ignore access prisma via 'this' cast
   const prisma = (this as any).prisma as PrismaService;
-  await prisma.accountToken.create({
-    data: {
-      accountId,
+  const account = await prisma.account.findUnique({ where: { id: accountId } });
+  if (!account) throw new Error('account_not_found');
+
+  // @ts-ignore access accountsService via 'this' cast
+  const accountsService = (this as any).accountsService as AccountsService;
+  await accountsService.saveAccountWithTokens(
+    { sellerId: account.sellerId },
+    {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
-      tokenType: data.token_type,
-      scope: data.scope,
+      tokenType: data.token_type || 'Bearer',
+      scope: data.scope || '',
       expiresIn: data.expires_in,
-      obtainedAt: new Date(),
     },
-  });
+  );
+
   return { accessToken: data.access_token, refreshToken: data.refresh_token };
 }

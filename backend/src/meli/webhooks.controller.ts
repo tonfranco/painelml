@@ -1,31 +1,66 @@
-import { Body, Controller, Headers, HttpCode, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Logger,
+  Post,
+} from '@nestjs/common';
+import { WebhooksService } from './webhooks.service';
 
-// Estrutura mínima de webhook do ML
+// Estrutura do webhook do ML
 // https://api.mercadolibre.com/platform-notifications
 interface MeliWebhookBody {
-  id: number | string;
+  _id: string; // event_id único
   resource: string; // e.g., "/orders/123456789"
   topic: string; // e.g., "orders_v2", "items", "shipments", "questions"
-  application_id?: number;
-  attempts?: number;
-  sent?: string;
-  received?: string;
-  user_id?: number;
+  application_id: string;
+  attempts: number;
+  sent: string;
+  received: string;
+  user_id: string;
 }
-
-const PROCESSED_IDS = new Set<string>();
 
 @Controller('meli')
 export class WebhooksController {
+  private readonly logger = new Logger(WebhooksController.name);
+
+  constructor(private readonly webhooksService: WebhooksService) {}
+
   @Post('webhooks')
   @HttpCode(200)
-  async handle(@Body() body: MeliWebhookBody, @Headers('x-correlation-id') corr?: string) {
-    const key = `${body.topic}:${body.resource}:${body.id}`;
-    if (PROCESSED_IDS.has(key)) {
-      return { status: 'duplicate', correlation_id: corr };
+  async handle(
+    @Body() body: MeliWebhookBody,
+    @Headers('x-correlation-id') corr?: string,
+  ) {
+    this.logger.log(
+      `📨 Webhook received: ${body.topic} | correlation: ${corr}`,
+    );
+
+    try {
+      const processed = await this.webhooksService.processWebhook(body);
+
+      return {
+        status: processed ? 'ok' : 'duplicate',
+        topic: body.topic,
+        resource: body.resource,
+        correlation_id: corr,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Webhook processing error: ${error.message}`);
+      // Retorna 200 mesmo com erro para evitar retry do ML
+      return { status: 'error', error: error.message, correlation_id: corr };
     }
-    PROCESSED_IDS.add(key);
-    // TODO: Enfileirar para processamento assíncrono (SQS) — fase posterior
-    return { status: 'ok', topic: body.topic, resource: body.resource, correlation_id: corr };
+  }
+
+  @Get('webhooks/stats')
+  async getStats() {
+    return this.webhooksService.getStats();
+  }
+
+  @Get('webhooks/pending')
+  async getPending() {
+    return this.webhooksService.getPendingEvents(50);
   }
 }

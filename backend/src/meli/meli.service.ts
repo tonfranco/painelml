@@ -3,14 +3,17 @@ import axios from 'axios';
 import { randomUUID } from 'crypto';
 import { generateVerifier, generateChallenge } from './pkce';
 import { PrismaService } from '../prisma/prisma.service';
+import { AccountsService } from '../accounts/accounts.service';
 
 const MEM_STATE: Map<string, { verifier: string; createdAt: number }> = new Map();
-const MEM_TOKENS: Array<{ accountId: string; access_token: string; refresh_token: string; expires_in: number; scope?: string; token_type?: string; obtained_at: number }> = [];
 
 @Injectable()
 export class MeliService {
   private readonly logger = new Logger(MeliService.name);
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accountsService: AccountsService,
+  ) {}
 
   getConfig() {
     const base = process.env.APP_BASE_URL ?? 'http://localhost:4000';
@@ -122,27 +125,19 @@ export class MeliService {
 
     const sellerId = String(data.user_id ?? 'unknown');
 
-    // Upsert Account by sellerId
-    const account = await this.prisma.account.upsert({
-      where: { sellerId },
-      update: {},
-      create: { sellerId },
-    });
-
-    // Persist token snapshot (history)
-    await this.prisma.accountToken.create({
-      data: {
-        accountId: account.id,
+    // Salva conta e tokens criptografados
+    await this.accountsService.saveAccountWithTokens(
+      { sellerId },
+      {
         accessToken: data.access_token,
         refreshToken: data.refresh_token,
-        tokenType: data.token_type,
-        scope: data.scope,
+        tokenType: data.token_type || 'Bearer',
+        scope: data.scope || '',
         expiresIn: data.expires_in,
-        obtainedAt: new Date(),
       },
-    });
+    );
 
-    this.logger.log(`Obtained and stored token for seller ${sellerId}`);
-    return { accountId: account.id, sellerId };
+    this.logger.log(`✅ Obtained and stored encrypted token for seller ${sellerId}`);
+    return { sellerId };
   }
 }
