@@ -19,6 +19,12 @@ export default function Home() {
         >
           Conectar conta Mercado Livre
         </button>
+        <a
+          href="/accounts"
+          className="text-sm text-zinc-700 hover:underline dark:text-zinc-300"
+        >
+          Ver contas conectadas
+        </a>
       </main>
     </div>
   );

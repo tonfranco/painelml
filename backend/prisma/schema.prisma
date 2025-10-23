@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id         String         @id @default(cuid())
+  sellerId   String         @unique
+  nickname   String?
+  siteId     String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  tokens     AccountToken[]
+  items      Item[]
+  orders     Order[]
+}
+
+model AccountToken {
+  id           String   @id @default(cuid())
+  accountId    String
+  accessToken  String
+  refreshToken String
+  tokenType    String?
+  scope        String?
+  expiresIn    Int
+  obtainedAt   DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}
+
+model Item {
+  id          String   @id @default(cuid())
+  accountId   String
+  meliItemId  String   @unique
+  title       String
+  status      String
+  price       Float
+  available   Int
+  thumbnail   String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  accountId     String
+  meliOrderId   String   @unique
+  status        String
+  totalAmount   Float
+  dateCreated   DateTime
+  buyerId       String?
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([dateCreated])
+}
