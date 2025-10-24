@@ -2,10 +2,14 @@ import { Controller, Get, Query, Res, Req } from '@nestjs/common';
 import type { Response } from 'express';
 import type { Request } from 'express';
 import { MeliService } from './meli.service';
+import { SyncService } from '../sync/sync.service';
 
 @Controller('meli')
 export class MeliController {
-  constructor(private readonly meli: MeliService) {}
+  constructor(
+    private readonly meli: MeliService,
+    private readonly sync: SyncService,
+  ) {}
 
   @Get('oauth/start')
   start(@Res() res: Response) {
@@ -32,7 +36,14 @@ export class MeliController {
     const cookieState = (req.signedCookies as any)?.['meli_oauth_state'];
     const result = await this.meli.handleCallback({ code, state }, cookieState);
     res.clearCookie('meli_oauth_state');
+    
+    // Iniciar sincronização automática em background
+    setImmediate(() => {
+      this.sync.start(result.accountId, 'all', 30);
+    });
+    
     const frontend = process.env.FRONTEND_BASE_URL ?? 'http://localhost:3000';
-    return res.redirect(`${frontend}/auth/callback?accountId=${result.sellerId}`);
+    // Passar accountId (UUID) para o frontend
+    return res.redirect(`${frontend}/auth/callback?accountId=${result.accountId}`);
   }
 }

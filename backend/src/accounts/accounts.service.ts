@@ -42,7 +42,7 @@ export class AccountsService {
   async saveAccountWithTokens(
     accountData: AccountData,
     tokenData: TokenData,
-  ): Promise<void> {
+  ): Promise<string> {
     const { sellerId, nickname, siteId } = accountData;
 
     this.logger.log(`Saving account for seller: ${sellerId}`);
@@ -87,7 +87,8 @@ export class AccountsService {
       },
     });
 
-    this.logger.log(`✅ Account and tokens saved for seller: ${sellerId}`);
+    this.logger.log(`✅ Account and tokens saved for seller: ${sellerId} (accountId: ${account.id})`);
+    return account.id;
   }
 
   /**

@@ -126,7 +126,7 @@ export class MeliService {
     const sellerId = String(data.user_id ?? 'unknown');
 
     // Salva conta e tokens criptografados
-    await this.accountsService.saveAccountWithTokens(
+    const accountId = await this.accountsService.saveAccountWithTokens(
       { sellerId },
       {
         accessToken: data.access_token,
@@ -137,8 +137,8 @@ export class MeliService {
       },
     );
 
-    this.logger.log(`✅ Obtained and stored encrypted token for seller ${sellerId}`);
-    return { sellerId };
+    this.logger.log(`✅ Obtained and stored encrypted token for seller ${sellerId} (accountId: ${accountId})`);
+    return { sellerId, accountId };
   }
 
   /**
