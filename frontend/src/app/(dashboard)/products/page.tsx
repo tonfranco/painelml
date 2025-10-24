@@ -7,6 +7,7 @@ import { ProductList } from '@/components/products/product-list';
 import { ProductStats } from '@/components/products/product-stats';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { SyncStatus } from '@/components/sync-status';
 
 export default function ProductsPage() {
   const [accountId, setAccountId] = useState<string>('');
@@ -82,6 +83,11 @@ export default function ProductsPage() {
           <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           Atualizar
         </Button>
+      </div>
+
+      {/* Sync Status */}
+      <div className="mb-6">
+        <SyncStatus accountId={accountId} />
       </div>
 
       {/* Stats */}
