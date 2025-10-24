@@ -30,9 +30,9 @@ export class MeliController {
     @Res() res: Response,
   ) {
     const cookieState = (req.signedCookies as any)?.['meli_oauth_state'];
-    await this.meli.handleCallback({ code, state }, cookieState);
+    const result = await this.meli.handleCallback({ code, state }, cookieState);
     res.clearCookie('meli_oauth_state');
     const frontend = process.env.FRONTEND_BASE_URL ?? 'http://localhost:3000';
-    return res.redirect(`${frontend}/connected`);
+    return res.redirect(`${frontend}/auth/callback?accountId=${result.sellerId}`);
   }
 }
