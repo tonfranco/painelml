@@ -140,4 +140,120 @@ export class MeliService {
     this.logger.log(`✅ Obtained and stored encrypted token for seller ${sellerId}`);
     return { sellerId };
   }
+
+  /**
+   * Busca um token válido para a conta
+   */
+  async getAccessToken(accountId: string): Promise<string> {
+    const tokens = await this.accountsService.getDecryptedTokens(accountId);
+    if (!tokens) {
+      throw new HttpException('No tokens found for account', HttpStatus.UNAUTHORIZED);
+    }
+    return tokens.accessToken;
+  }
+
+  /**
+   * Faz uma requisição autenticada à API do Mercado Livre
+   */
+  async makeAuthenticatedRequest(accountId: string, url: string, options: any = {}) {
+    const accessToken = await this.getAccessToken(accountId);
+
+    try {
+      const response = await axios({
+        url,
+        ...options,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          ...options.headers,
+        },
+        timeout: 15000,
+        validateStatus: () => true,
+      });
+
+      if (response.status >= 400) {
+        this.logger.error(
+          `ML API error: ${response.status} - ${JSON.stringify(response.data)}`,
+        );
+        throw new HttpException(
+          `ML API error: ${response.status}`,
+          response.status,
+        );
+      }
+
+      return response.data;
+    } catch (error: any) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Error calling ML API: ${error.message}`);
+      throw new HttpException(
+        'Error calling Mercado Libre API',
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+  }
+
+  /**
+   * Busca informações de um pedido
+   */
+  async getOrder(accountId: string, orderId: string) {
+    const url = `https://api.mercadolibre.com/orders/${orderId}`;
+    return this.makeAuthenticatedRequest(accountId, url);
+  }
+
+  /**
+   * Busca informações de um shipment
+   */
+  async getShipment(accountId: string, shipmentId: string) {
+    const url = `https://api.mercadolibre.com/shipments/${shipmentId}`;
+    return this.makeAuthenticatedRequest(accountId, url);
+  }
+
+  /**
+   * Busca uma pergunta específica
+   */
+  async getQuestion(accountId: string, questionId: string) {
+    const url = `https://api.mercadolibre.com/questions/${questionId}`;
+    return this.makeAuthenticatedRequest(accountId, url);
+  }
+
+  /**
+   * Busca perguntas com paginação
+   */
+  async getQuestions(
+    accountId: string,
+    params: { offset?: number; limit?: number; status?: string } = {},
+  ) {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+    });
+
+    if (!account) {
+      throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
+    }
+
+    const url = new URL(
+      `https://api.mercadolibre.com/questions/search?seller_id=${account.sellerId}`,
+    );
+
+    if (params.offset) url.searchParams.set('offset', params.offset.toString());
+    if (params.limit) url.searchParams.set('limit', params.limit.toString());
+    if (params.status) url.searchParams.set('status', params.status);
+
+    return this.makeAuthenticatedRequest(accountId, url.toString());
+  }
+
+  /**
+   * Responde uma pergunta
+   */
+  async answerQuestion(accountId: string, questionId: string, answer: string) {
+    const url = `https://api.mercadolibre.com/answers`;
+    return this.makeAuthenticatedRequest(accountId, url, {
+      method: 'POST',
+      data: {
+        question_id: questionId,
+        text: answer,
+      },
+    });
+  }
 }

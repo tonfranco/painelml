@@ -7,9 +7,23 @@ import { AccountsModule } from './accounts/accounts.module';
 import { SyncModule } from './sync/sync.module';
 import { ItemsModule } from './items/items.module';
 import { OrdersModule } from './orders/orders.module';
+import { ShipmentsModule } from './shipments/shipments.module';
+import { QuestionsModule } from './questions/questions.module';
+import { QueueModule } from './queue/queue.module';
+import { WorkersModule } from './workers/workers.module';
 
 @Module({
-  imports: [MeliModule, AccountsModule, SyncModule, ItemsModule, OrdersModule],
+  imports: [
+    MeliModule,
+    AccountsModule,
+    SyncModule,
+    ItemsModule,
+    OrdersModule,
+    ShipmentsModule,
+    QuestionsModule,
+    QueueModule,
+    WorkersModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

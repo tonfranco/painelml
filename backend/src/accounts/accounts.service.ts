@@ -147,6 +147,45 @@ export class AccountsService {
   }
 
   /**
+   * Recupera tokens descriptografados por accountId
+   */
+  async getDecryptedTokens(accountId: string): Promise<TokenData | null> {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      include: {
+        tokens: {
+          orderBy: { obtainedAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!account || account.tokens.length === 0) {
+      return null;
+    }
+
+    const token = account.tokens[0];
+
+    // Descriptografa tokens
+    const accessToken = await this.crypto.decrypt(
+      token.accessToken,
+      this.encryptionKey,
+    );
+    const refreshToken = await this.crypto.decrypt(
+      token.refreshToken,
+      this.encryptionKey,
+    );
+
+    return {
+      accessToken,
+      refreshToken,
+      tokenType: token.tokenType || 'Bearer',
+      scope: token.scope || '',
+      expiresIn: token.expiresIn,
+    };
+  }
+
+  /**
    * Verifica se um token está próximo de expirar (< 1 hora)
    */
   async isTokenExpiringSoon(sellerId: string): Promise<boolean> {

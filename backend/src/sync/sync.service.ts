@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AccountsService } from '../accounts/accounts.service';
 import axios from 'axios';
 
-export type SyncScope = 'items' | 'orders' | 'all';
+export type SyncScope = 'items' | 'orders' | 'shipments' | 'questions' | 'all';
 
 type Status = {
   running: boolean;
@@ -11,6 +11,8 @@ type Status = {
   finishedAt?: number;
   itemsProcessed: number;
   ordersProcessed: number;
+  shipmentsProcessed: number;
+  questionsProcessed: number;
   errors: string[];
 };
 
@@ -35,6 +37,8 @@ export class SyncService {
       startedAt: Date.now(),
       itemsProcessed: 0,
       ordersProcessed: 0,
+      shipmentsProcessed: 0,
+      questionsProcessed: 0,
       errors: [],
     });
 
@@ -66,6 +70,12 @@ export class SyncService {
     }
     if (scope === 'orders' || scope === 'all') {
       await this.syncOrders(account.sellerId, account.id, authCtx, days, st);
+    }
+    if (scope === 'shipments' || scope === 'all') {
+      await this.syncShipments(account.id, authCtx, st);
+    }
+    if (scope === 'questions' || scope === 'all') {
+      await this.syncQuestions(account.sellerId, account.id, authCtx, st);
     }
 
     STATUS.set(accountId, { ...st, running: false, finishedAt: Date.now() });
@@ -158,6 +168,135 @@ export class SyncService {
           st.ordersProcessed += 1;
         } catch (e: any) {
           st.errors.push(`order upsert: ${e?.response?.status || ''} ${e?.message || e}`);
+          await sleep(500);
+        }
+      }
+
+      offset += limit;
+      await sleep(500);
+    }
+  }
+
+  private async syncShipments(accountId: string, authCtx: { accessToken: string; refreshToken: string }, st: Status) {
+    // Busca todos os pedidos e sincroniza seus shipments
+    const orders = await this.prisma.order.findMany({
+      where: { accountId },
+      select: { meliOrderId: true },
+    });
+
+    for (const order of orders) {
+      try {
+        const orderUrl = `https://api.mercadolibre.com/orders/${order.meliOrderId}`;
+        const resp = await this.authedGet(orderUrl, accountId, authCtx, 15000);
+        const orderData = resp.data;
+
+        if (orderData.shipping?.id) {
+          const shipmentId = String(orderData.shipping.id);
+          const shipmentUrl = `https://api.mercadolibre.com/shipments/${shipmentId}`;
+          const shipResp = await this.authedGet(shipmentUrl, accountId, authCtx, 15000);
+          const shipData = shipResp.data;
+
+          await this.prisma.shipment.upsert({
+            where: { meliShipmentId: shipmentId },
+            create: {
+              accountId,
+              meliShipmentId: shipmentId,
+              orderId: order.meliOrderId,
+              mode: shipData.mode || 'unknown',
+              status: shipData.status || 'unknown',
+              substatus: shipData.substatus,
+              trackingNumber: shipData.tracking_number,
+              trackingMethod: shipData.tracking_method,
+              estimatedDelivery: shipData.estimated_delivery_time?.date
+                ? new Date(shipData.estimated_delivery_time.date)
+                : null,
+              shippedDate: shipData.status_history?.shipped?.date_shipped
+                ? new Date(shipData.status_history.shipped.date_shipped)
+                : null,
+              deliveredDate: shipData.status_history?.delivered?.date_delivered
+                ? new Date(shipData.status_history.delivered.date_delivered)
+                : null,
+              receiverAddress: shipData.receiver_address
+                ? JSON.stringify(shipData.receiver_address)
+                : null,
+              senderAddress: shipData.sender_address
+                ? JSON.stringify(shipData.sender_address)
+                : null,
+              cost: shipData.cost || 0,
+            },
+            update: {
+              status: shipData.status || 'unknown',
+              substatus: shipData.substatus,
+              trackingNumber: shipData.tracking_number,
+              trackingMethod: shipData.tracking_method,
+              estimatedDelivery: shipData.estimated_delivery_time?.date
+                ? new Date(shipData.estimated_delivery_time.date)
+                : null,
+              shippedDate: shipData.status_history?.shipped?.date_shipped
+                ? new Date(shipData.status_history.shipped.date_shipped)
+                : null,
+              deliveredDate: shipData.status_history?.delivered?.date_delivered
+                ? new Date(shipData.status_history.delivered.date_delivered)
+                : null,
+              receiverAddress: shipData.receiver_address
+                ? JSON.stringify(shipData.receiver_address)
+                : null,
+              senderAddress: shipData.sender_address
+                ? JSON.stringify(shipData.sender_address)
+                : null,
+              cost: shipData.cost || 0,
+            },
+          });
+
+          st.shipmentsProcessed += 1;
+        }
+      } catch (e: any) {
+        st.errors.push(`shipment ${order.meliOrderId}: ${e?.response?.status || ''} ${e?.message || e}`);
+        await sleep(500);
+      }
+    }
+  }
+
+  private async syncQuestions(sellerId: string, accountId: string, authCtx: { accessToken: string; refreshToken: string }, st: Status) {
+    let offset = 0;
+    const limit = 50;
+
+    for (let page = 0; page < 10; page++) { // cap 500 questions
+      const url = `https://api.mercadolibre.com/questions/search?seller_id=${sellerId}&limit=${limit}&offset=${offset}`;
+      const resp = await this.authedGet(url, accountId, authCtx, 15000);
+      const questions = resp.data?.questions || [];
+      if (!questions.length) break;
+
+      for (const q of questions) {
+        try {
+          const questionId = String(q.id);
+          await this.prisma.question.upsert({
+            where: { meliQuestionId: questionId },
+            create: {
+              accountId,
+              meliQuestionId: questionId,
+              itemId: q.item_id,
+              text: q.text,
+              status: q.status,
+              answer: q.answer?.text || null,
+              dateCreated: new Date(q.date_created),
+              dateAnswered: q.answer?.date_created
+                ? new Date(q.answer.date_created)
+                : null,
+              fromId: String(q.from.id),
+            },
+            update: {
+              status: q.status,
+              answer: q.answer?.text || null,
+              dateAnswered: q.answer?.date_created
+                ? new Date(q.answer.date_created)
+                : null,
+            },
+          });
+
+          st.questionsProcessed += 1;
+        } catch (e: any) {
+          st.errors.push(`question ${q.id}: ${e?.response?.status || ''} ${e?.message || e}`);
           await sleep(500);
         }
       }

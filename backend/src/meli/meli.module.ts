@@ -5,9 +5,10 @@ import { WebhooksController } from './webhooks.controller';
 import { WebhooksService } from './webhooks.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AccountsModule } from '../accounts/accounts.module';
+import { QueueModule } from '../queue/queue.module';
 
 @Module({
-  imports: [PrismaModule, AccountsModule],
+  imports: [PrismaModule, AccountsModule, QueueModule],
   controllers: [MeliController, WebhooksController],
   providers: [MeliService, WebhooksService],
   exports: [MeliService, WebhooksService],

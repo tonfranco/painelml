@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { SqsService } from '../queue/sqs.service';
 
 export interface WebhookPayload {
   _id: string; // event_id único do ML
@@ -19,7 +20,10 @@ export interface WebhookPayload {
 export class WebhooksService {
   private readonly logger = new Logger(WebhooksService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly sqsService: SqsService,
+  ) {}
 
   /**
    * Processa webhook com dedupe por event_id
@@ -63,78 +67,31 @@ export class WebhooksService {
   }
 
   /**
-   * Roteia webhook para processamento específico
+   * Roteia webhook para processamento assíncrono via SQS
    */
   private async routeWebhook(payload: WebhookPayload): Promise<void> {
-    switch (payload.topic) {
-      case 'orders_v2':
-        await this.handleOrderWebhook(payload);
-        break;
-      case 'items':
-        await this.handleItemWebhook(payload);
-        break;
-      case 'claims':
-        this.logger.log(`📋 Claims webhook: ${payload.resource}`);
-        break;
-      case 'questions':
-        this.logger.log(`❓ Questions webhook: ${payload.resource}`);
-        break;
-      default:
-        this.logger.warn(`⚠️  Unknown topic: ${payload.topic}`);
-    }
-  }
-
-  /**
-   * Processa webhook de pedidos
-   */
-  private async handleOrderWebhook(payload: WebhookPayload): Promise<void> {
-    this.logger.log(`📦 Processing order webhook: ${payload.resource}`);
-
-    // Extrai order_id da URL: /orders/123456789
-    const orderId = payload.resource.split('/').pop();
-
-    if (!orderId) {
-      this.logger.error(`❌ Invalid order resource: ${payload.resource}`);
-      return;
+    // Normaliza o tópico
+    let topic = payload.topic;
+    if (topic === 'orders_v2') {
+      topic = 'orders';
     }
 
-    // Marca para sincronização (será processado pelo worker)
-    await this.markEventProcessed(payload._id);
+    // Envia para a fila SQS para processamento assíncrono
+    try {
+      await this.sqsService.enqueueWebhook({
+        eventId: payload._id,
+        topic,
+        resource: payload.resource,
+        userId: payload.user_id,
+      });
 
-    this.logger.log(`✅ Order ${orderId} marked for sync`);
-  }
-
-  /**
-   * Processa webhook de itens
-   */
-  private async handleItemWebhook(payload: WebhookPayload): Promise<void> {
-    this.logger.log(`🏷️  Processing item webhook: ${payload.resource}`);
-
-    // Extrai item_id da URL: /items/MLB123456789
-    const itemId = payload.resource.split('/').pop();
-
-    if (!itemId) {
-      this.logger.error(`❌ Invalid item resource: ${payload.resource}`);
-      return;
+      this.logger.log(
+        `✅ Webhook enqueued for async processing: ${topic} | ${payload._id}`,
+      );
+    } catch (error) {
+      this.logger.error(`❌ Error enqueuing webhook: ${error.message}`);
+      throw error;
     }
-
-    // Marca para sincronização
-    await this.markEventProcessed(payload._id);
-
-    this.logger.log(`✅ Item ${itemId} marked for sync`);
-  }
-
-  /**
-   * Marca evento como processado
-   */
-  private async markEventProcessed(eventId: string): Promise<void> {
-    await this.prisma.webhookEvent.update({
-      where: { eventId },
-      data: {
-        processed: true,
-        processedAt: new Date(),
-      },
-    });
   }
 
   /**

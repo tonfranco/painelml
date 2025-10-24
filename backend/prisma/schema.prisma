@@ -21,6 +21,8 @@ model Account {
   tokens     AccountToken[]
   items      Item[]
   orders     Order[]
+  shipments  Shipment[]
+  questions  Question[]
 }
 
 model AccountToken {
@@ -72,10 +74,58 @@ model Order {
   @@index([dateCreated])
 }
 
+model Shipment {
+  id              String   @id @default(cuid())
+  accountId       String
+  meliShipmentId  String   @unique
+  orderId         String?  // Relacionamento com Order
+  mode            String   // me2, me1, custom, etc.
+  status          String   // pending, ready_to_ship, shipped, delivered, etc.
+  substatus       String?
+  trackingNumber  String?
+  trackingMethod  String?
+  estimatedDelivery DateTime?
+  shippedDate     DateTime?
+  deliveredDate   DateTime?
+  receiverAddress String?  // JSON com endereço completo
+  senderAddress   String?  // JSON com endereço completo
+  cost            Float?
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([orderId])
+  @@index([status])
+}
+
+model Question {
+  id             String   @id @default(cuid())
+  accountId      String
+  meliQuestionId String   @unique
+  itemId         String?  // Relacionamento com Item
+  text           String
+  status         String   // UNANSWERED, ANSWERED, CLOSED_UNANSWERED, UNDER_REVIEW, BANNED, DELETED
+  answer         String?
+  dateCreated    DateTime
+  dateAnswered   DateTime?
+  fromId         String   // ID do comprador
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([itemId])
+  @@index([status])
+  @@index([dateCreated])
+}
+
 model WebhookEvent {
   id          String   @id @default(cuid())
   eventId     String   @unique // Dedupe: event_id do Mercado Livre
-  topic       String   // orders, items, etc.
+  topic       String   // orders, items, questions, shipments, etc.
   resource    String   // URL do recurso afetado
   userId      String   // user_id do ML
   attempts    Int      @default(0)
