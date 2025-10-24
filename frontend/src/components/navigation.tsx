@@ -11,6 +11,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from './theme-toggle';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -24,10 +25,10 @@ export function Navigation() {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r bg-gray-50">
+    <div className="flex h-screen w-64 flex-col border-r border-border bg-card">
       {/* Logo */}
-      <div className="flex h-16 items-center border-b px-6">
-        <h1 className="text-xl font-bold text-blue-600">Painel ML</h1>
+      <div className="flex h-16 items-center border-b border-border px-6">
+        <h1 className="text-xl font-bold text-primary">Painel ML</h1>
       </div>
 
       {/* Navigation */}
@@ -43,8 +44,8 @@ export function Navigation() {
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               )}
             >
               <Icon className="h-5 w-5" />
@@ -55,9 +56,13 @@ export function Navigation() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t p-4">
+      <div className="border-t border-border p-4 space-y-2">
+        <div className="flex items-center justify-between px-3">
+          <span className="text-sm text-muted-foreground">Tema</span>
+          <ThemeToggle />
+        </div>
         <button
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           onClick={() => {
             localStorage.removeItem('accountId');
             window.location.href = '/';
