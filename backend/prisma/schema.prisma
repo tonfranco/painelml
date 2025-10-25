@@ -23,6 +23,7 @@ model Account {
   orders     Order[]
   shipments  Shipment[]
   questions  Question[]
+  settings   Settings?
 }
 
 model AccountToken {

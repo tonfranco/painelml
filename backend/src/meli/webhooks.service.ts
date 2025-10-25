@@ -53,7 +53,7 @@ export class WebhooksService {
         topic: payload.topic,
         resource: payload.resource,
         userId: payload.user_id,
-        attempts: payload.attempts,
+        // attempts: payload.attempts, // TODO: adicionar campo ao schema
         payload: JSON.stringify(payload),
       },
     });

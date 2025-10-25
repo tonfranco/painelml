@@ -200,7 +200,7 @@ export class WebhookWorkerService {
       const pendingWebhooks = await this.prisma.webhookEvent.findMany({
         where: {
           processed: false,
-          attempts: { lt: 3 }, // Máximo 3 tentativas
+          // attempts: { lt: 3 }, // Máximo 3 tentativas - TODO: adicionar campo ao schema
         },
         take: 20,
         orderBy: { receivedAt: 'asc' },
@@ -216,10 +216,10 @@ export class WebhookWorkerService {
       for (const webhook of pendingWebhooks) {
         try {
           // Incrementa tentativas
-          await this.prisma.webhookEvent.update({
-            where: { id: webhook.id },
-            data: { attempts: { increment: 1 } },
-          });
+          // await this.prisma.webhookEvent.update({
+          //   where: { id: webhook.id },
+          //   data: { attempts: { increment: 1 } },
+          // });
 
           // Envia para a fila
           await this.sqsService.enqueueWebhook({

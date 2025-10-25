@@ -55,22 +55,28 @@ export function SyncStatus({ accountId }: SyncStatusProps) {
   if (!status.running && status.finishedAt) return null;
 
   return (
-    <Card className="border-blue-200 bg-blue-50">
+    <Card className={`border-l-4 ${
+      status.running 
+        ? 'border-l-blue-500 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950 dark:to-gray-900'
+        : status.errors.length > 0
+        ? 'border-l-red-500 bg-gradient-to-br from-red-50 to-white dark:from-red-950 dark:to-gray-900'
+        : 'border-l-green-500 bg-gradient-to-br from-green-50 to-white dark:from-green-950 dark:to-gray-900'
+    }`}>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white">
           {status.running ? (
             <>
-              <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
+              <RefreshCw className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" />
               <span>Sincronizando dados do Mercado Livre...</span>
             </>
           ) : status.errors.length > 0 ? (
             <>
-              <XCircle className="h-4 w-4 text-red-600" />
+              <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
               <span>Sincronização concluída com erros</span>
             </>
           ) : (
             <>
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
               <span>Sincronização concluída!</span>
             </>
           )}
@@ -79,20 +85,20 @@ export function SyncStatus({ accountId }: SyncStatusProps) {
       <CardContent>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-600">Produtos processados:</span>
-            <span className="font-medium">{status.itemsProcessed}</span>
+            <span className="font-semibold text-gray-600 dark:text-gray-400">Produtos processados:</span>
+            <span className="font-bold text-gray-900 dark:text-white">{status.itemsProcessed}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Pedidos processados:</span>
-            <span className="font-medium">{status.ordersProcessed}</span>
+            <span className="font-semibold text-gray-600 dark:text-gray-400">Pedidos processados:</span>
+            <span className="font-bold text-gray-900 dark:text-white">{status.ordersProcessed}</span>
           </div>
           {status.errors.length > 0 && (
-            <div className="mt-2 rounded bg-red-100 p-2 text-xs text-red-800">
+            <div className="mt-2 rounded-lg bg-red-100 p-3 text-xs font-bold text-red-800 dark:bg-red-900 dark:text-red-200">
               {status.errors.length} erro(s) encontrado(s)
             </div>
           )}
           {status.running && (
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs font-medium text-gray-500 dark:text-gray-400">
               Isso pode levar alguns minutos dependendo da quantidade de dados...
             </p>
           )}
