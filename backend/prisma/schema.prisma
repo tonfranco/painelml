@@ -127,18 +127,48 @@ model Question {
 
 model WebhookEvent {
   id          String   @id @default(cuid())
-  eventId     String   @unique // Dedupe: event_id do Mercado Livre
-  topic       String   // orders, items, questions, shipments, etc.
-  resource    String   // URL do recurso afetado
-  userId      String   // user_id do ML
-  attempts    Int      @default(0)
+  eventId     String   @unique // _id do webhook do ML
+  topic       String   // orders, items, questions, etc.
+  resource    String   // URL do recurso
+  userId      String   // seller_id
+  payload     Json     // payload completo
   processed   Boolean  @default(false)
-  payload     String   // JSON completo do webhook
   receivedAt  DateTime @default(now())
   processedAt DateTime?
 
-  @@index([eventId])
   @@index([topic])
   @@index([processed])
+  @@index([userId])
   @@index([receivedAt])
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  accountId String   @unique
+  
+  // Sincronização
+  syncInterval       Int      @default(30) // minutos
+  syncItems          Boolean  @default(true)
+  syncOrders         Boolean  @default(true)
+  syncQuestions      Boolean  @default(true)
+  syncHistoryDays    Int      @default(30)
+  
+  // Notificações
+  notificationsEnabled       Boolean @default(true)
+  notifyNewQuestions         Boolean @default(true)
+  notifyNewOrders            Boolean @default(true)
+  notifyLowStock             Boolean @default(true)
+  notifyQuestionsSLA         Boolean @default(true)
+  
+  // Preferências
+  theme              String   @default("system") // light, dark, system
+  language           String   @default("pt-BR")
+  timezone           String   @default("America/Sao_Paulo")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  @@index([accountId])
 }

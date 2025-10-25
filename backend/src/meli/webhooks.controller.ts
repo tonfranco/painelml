@@ -63,4 +63,9 @@ export class WebhooksController {
   async getPending() {
     return this.webhooksService.getPendingEvents(50);
   }
+
+  @Get('webhooks/subscriptions')
+  async getSubscriptions() {
+    return this.webhooksService.getSubscriptions();
+  }
 }

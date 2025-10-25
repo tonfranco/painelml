@@ -126,4 +126,25 @@ export class WebhooksService {
       byTopic: byTopic.map((t: any) => ({ topic: t.topic, count: t._count })),
     };
   }
+
+  /**
+   * Lista webhooks configurados (mock - em produção consultaria a API do ML)
+   */
+  async getSubscriptions() {
+    // Em produção, consultaria: GET https://api.mercadolibre.com/applications/{app_id}/webhooks
+    // Por enquanto, retorna os tópicos que estamos processando
+    const topics = await this.prisma.webhookEvent.groupBy({
+      by: ['topic'],
+      _count: true,
+      orderBy: { _count: { topic: 'desc' } },
+    });
+
+    return {
+      subscriptions: topics.map((t: any) => ({
+        topic: t.topic,
+        eventsReceived: t._count,
+        status: 'active',
+      })),
+    };
+  }
 }
