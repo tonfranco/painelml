@@ -25,10 +25,29 @@ export class QuestionsService {
       where.itemId = filters.itemId;
     }
 
-    return this.prisma.question.findMany({
+    const questions = await this.prisma.question.findMany({
       where,
       orderBy: { dateCreated: 'desc' },
     });
+
+    // Buscar informações dos items relacionados
+    const itemIds = [...new Set(questions.map(q => q.itemId).filter(Boolean))];
+    const items = await this.prisma.item.findMany({
+      where: { meliItemId: { in: itemIds as string[] } },
+      select: {
+        meliItemId: true,
+        title: true,
+        permalink: true,
+      },
+    });
+
+    const itemsMap = new Map(items.map(item => [item.meliItemId, item]));
+
+    // Adicionar informações do item a cada pergunta
+    return questions.map(question => ({
+      ...question,
+      item: question.itemId ? itemsMap.get(question.itemId) : null,
+    }));
   }
 
   /**

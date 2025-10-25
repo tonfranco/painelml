@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageCircle, RefreshCw, Send, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { MessageCircle, RefreshCw, Send, CheckCircle, Clock, AlertCircle, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -230,14 +230,33 @@ export default function QuestionsPage() {
                         </span>
                       </div>
 
+                      {/* Product Info */}
+                      {question.item && (
+                        <div className="mb-3 rounded-lg bg-blue-50 p-3 dark:bg-blue-950">
+                          <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Produto:</p>
+                          {question.item.permalink ? (
+                            <a
+                              href={question.item.permalink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline flex items-center gap-1"
+                            >
+                              {question.item.title}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          ) : (
+                            <p className="text-sm font-bold text-gray-900 dark:text-white">
+                              {question.item.title}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {/* Question */}
                       <div className="mb-4">
                         <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Pergunta:</p>
                         <p className="text-base font-bold text-gray-900 dark:text-white">
                           {question.text}
-                        </p>
-                        <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                          ID do Item: {question.itemId}
                         </p>
                       </div>
 

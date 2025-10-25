@@ -37,16 +37,20 @@ export class ItemsService {
           status: itemData.status,
           price: itemData.price || 0,
           available: itemData.available_quantity || 0,
+          sold: itemData.sold_quantity || 0,
           thumbnail: itemData.thumbnail,
           picture: picture,
+          permalink: itemData.permalink,
         },
         update: {
           title: itemData.title,
           status: itemData.status,
           price: itemData.price || 0,
           available: itemData.available_quantity || 0,
+          sold: itemData.sold_quantity || 0,
           thumbnail: itemData.thumbnail,
           picture: picture,
+          permalink: itemData.permalink,
         },
       });
 

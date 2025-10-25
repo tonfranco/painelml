@@ -112,16 +112,20 @@ export class SyncService {
               status: it.status ?? 'unknown',
               price: Number(it.price ?? 0),
               available: Number(it.available_quantity ?? 0),
+              sold: Number(it.sold_quantity ?? 0),
               thumbnail: it.thumbnail ?? null,
               picture: picture,
+              permalink: it.permalink ?? null,
             },
             update: {
               title: it.title ?? '',
               status: it.status ?? 'unknown',
               price: Number(it.price ?? 0),
               available: Number(it.available_quantity ?? 0),
+              sold: Number(it.sold_quantity ?? 0),
               thumbnail: it.thumbnail ?? null,
               picture: picture,
+              permalink: it.permalink ?? null,
             },
           });
           st.itemsProcessed += 1;

@@ -74,6 +74,11 @@ export interface Question {
   fromId: string;
   updatedAt: string;
   createdAt: string;
+  item?: {
+    meliItemId: string;
+    title: string;
+    permalink?: string;
+  } | null;
 }
 
 export interface ItemsStats {

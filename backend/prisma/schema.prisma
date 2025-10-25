@@ -48,8 +48,10 @@ model Item {
   status      String
   price       Float
   available   Int
+  sold        Int      @default(0)
   thumbnail   String?
   picture     String?  // Imagem em alta resolução
+  permalink   String?  // Link do anúncio no ML
   updatedAt   DateTime @updatedAt
   createdAt   DateTime @default(now())
 
