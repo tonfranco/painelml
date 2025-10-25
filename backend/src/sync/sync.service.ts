@@ -97,6 +97,12 @@ export class SyncService {
           const itemUrl = `https://api.mercadolibre.com/items/${id}`;
           const r = await this.authedGet(itemUrl, accountId, authCtx, 15000);
           const it = r.data;
+          
+          // Pegar a primeira imagem em alta resolução, se disponível
+          const picture = it.pictures && it.pictures.length > 0
+            ? it.pictures[0].url || it.pictures[0].secure_url
+            : null;
+          
           await this.prisma.item.upsert({
             where: { meliItemId: id },
             create: {
@@ -107,6 +113,7 @@ export class SyncService {
               price: Number(it.price ?? 0),
               available: Number(it.available_quantity ?? 0),
               thumbnail: it.thumbnail ?? null,
+              picture: picture,
             },
             update: {
               title: it.title ?? '',
@@ -114,6 +121,7 @@ export class SyncService {
               price: Number(it.price ?? 0),
               available: Number(it.available_quantity ?? 0),
               thumbnail: it.thumbnail ?? null,
+              picture: picture,
             },
           });
           st.itemsProcessed += 1;

@@ -23,6 +23,11 @@ export class ItemsService {
         `https://api.mercadolibre.com/items/${itemId}`,
       );
 
+      // Pegar a primeira imagem em alta resolução, se disponível
+      const picture = itemData.pictures && itemData.pictures.length > 0
+        ? itemData.pictures[0].url || itemData.pictures[0].secure_url
+        : null;
+
       const item = await this.prisma.item.upsert({
         where: { meliItemId: itemId },
         create: {
@@ -33,6 +38,7 @@ export class ItemsService {
           price: itemData.price || 0,
           available: itemData.available_quantity || 0,
           thumbnail: itemData.thumbnail,
+          picture: picture,
         },
         update: {
           title: itemData.title,
@@ -40,6 +46,7 @@ export class ItemsService {
           price: itemData.price || 0,
           available: itemData.available_quantity || 0,
           thumbnail: itemData.thumbnail,
+          picture: picture,
         },
       });
 

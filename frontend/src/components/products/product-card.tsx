@@ -23,12 +23,15 @@ export function ProductCard({ item, onViewDetails }: ProductCardProps) {
   const isOutOfStock = item.available === 0;
   const isLowStock = item.available > 0 && item.available < 5;
 
+  // Usar picture (alta resolução) se disponível, senão thumbnail
+  const imageUrl = item.picture || item.thumbnail;
+
   return (
     <Card className="overflow-hidden border-l-4 border-l-blue-500 transition-all hover:shadow-lg hover:scale-[1.02]">
       <div className="relative aspect-square bg-gray-100">
-        {item.thumbnail ? (
+        {imageUrl ? (
           <img
-            src={item.thumbnail}
+            src={imageUrl}
             alt={item.title}
             className="h-full w-full object-cover"
           />

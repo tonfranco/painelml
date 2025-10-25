@@ -49,6 +49,7 @@ model Item {
   price       Float
   available   Int
   thumbnail   String?
+  picture     String?  // Imagem em alta resolução
   updatedAt   DateTime @updatedAt
   createdAt   DateTime @default(now())
 

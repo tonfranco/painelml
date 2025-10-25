@@ -19,6 +19,7 @@ export interface Item {
   available: number;
   sold: number;
   thumbnail?: string;
+  picture?: string; // Imagem em alta resolução
   permalink?: string;
   categoryId?: string;
   listingType?: string;

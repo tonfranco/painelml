@@ -21,6 +21,7 @@ export class ItemsController {
         price: true,
         available: true,
         thumbnail: true,
+        picture: true,
         updatedAt: true,
         createdAt: true,
       },
