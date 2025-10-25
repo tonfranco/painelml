@@ -24,7 +24,7 @@ export function ProductCard({ item, onViewDetails }: ProductCardProps) {
   const isLowStock = item.available > 0 && item.available < 5;
 
   return (
-    <Card className="overflow-hidden transition-shadow hover:shadow-md">
+    <Card className="overflow-hidden border-l-4 border-l-blue-500 transition-all hover:shadow-lg hover:scale-[1.02]">
       <div className="relative aspect-square bg-gray-100">
         {item.thumbnail ? (
           <img
@@ -57,25 +57,26 @@ export function ProductCard({ item, onViewDetails }: ProductCardProps) {
       </div>
 
       <CardContent className="p-4">
-        <h3 className="mb-2 line-clamp-2 min-h-[3rem] text-sm font-semibold">
+        <h3 className="mb-2 line-clamp-2 min-h-[3rem] text-sm font-bold text-gray-900 dark:text-white">
           {item.title}
         </h3>
 
         <div className="mb-3 flex items-baseline justify-between">
-          <span className="text-2xl font-bold text-blue-600">
+          <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             {formatCurrency(item.price)}
           </span>
         </div>
 
-        <div className="mb-4 flex items-center justify-between text-sm text-gray-600">
+        <div className="mb-4 flex items-center justify-between text-sm">
           <div>
-            <span className="font-medium">Disponível:</span>{' '}
-            <span className={isOutOfStock ? 'text-red-600 font-semibold' : ''}>
+            <span className="font-semibold text-gray-700 dark:text-gray-300">Disponível:</span>{' '}
+            <span className={isOutOfStock ? 'text-red-600 dark:text-red-400 font-bold' : 'font-semibold text-gray-900 dark:text-white'}>
               {item.available}
             </span>
           </div>
           <div>
-            <span className="font-medium">Vendidos:</span> {item.sold}
+            <span className="font-semibold text-gray-700 dark:text-gray-300">Vendidos:</span>{' '}
+            <span className="font-semibold text-gray-900 dark:text-white">{item.sold}</span>
           </div>
         </div>
 

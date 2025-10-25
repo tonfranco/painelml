@@ -26,14 +26,16 @@ export default function ProductsPage() {
 
   if (!accountId) {
     return (
-      <Card variant="glass" className="border-yellow-200 bg-yellow-50/50">
+      <Card variant="glass" className="border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-50 to-white dark:from-amber-950 dark:to-gray-900">
         <CardContent className="flex items-center gap-3 p-6">
-          <AlertCircle className="h-5 w-5 text-yellow-600" />
+          <div className="rounded-lg bg-amber-500 p-3">
+            <AlertCircle className="h-6 w-6 text-white" />
+          </div>
           <div>
-            <p className="font-medium text-yellow-900">
+            <p className="text-lg font-bold text-gray-900 dark:text-white">
               Nenhuma conta conectada
             </p>
-            <p className="text-sm text-yellow-700">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Conecte uma conta do Mercado Livre para visualizar seus produtos.
             </p>
           </div>
@@ -44,12 +46,14 @@ export default function ProductsPage() {
 
   if (error) {
     return (
-      <Card variant="glass" className="border-red-200 bg-red-50/50">
+      <Card variant="glass" className="border-l-4 border-l-red-500 bg-gradient-to-br from-red-50 to-white dark:from-red-950 dark:to-gray-900">
         <CardContent className="flex items-center gap-3 p-6">
-          <AlertCircle className="h-5 w-5 text-red-600" />
+          <div className="rounded-lg bg-red-500 p-3">
+            <AlertCircle className="h-6 w-6 text-white" />
+          </div>
           <div className="flex-1">
-            <p className="font-medium text-red-900">Erro ao carregar produtos</p>
-            <p className="text-sm text-red-700">
+            <p className="text-lg font-bold text-gray-900 dark:text-white">Erro ao carregar produtos</p>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {error instanceof Error ? error.message : 'Erro desconhecido'}
             </p>
           </div>
@@ -67,8 +71,8 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Catálogo de Produtos</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Catálogo de Produtos</h1>
+          <p className="mt-1 text-lg text-gray-700 dark:text-gray-300">
             Gerencie seus produtos do Mercado Livre
           </p>
         </div>

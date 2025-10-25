@@ -15,29 +15,33 @@ export function ProductStats({ stats }: ProductStatsProps) {
       title: 'Total de Produtos',
       value: stats.total,
       icon: Package,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      iconBg: 'bg-blue-500',
+      borderColor: 'border-l-blue-500',
+      gradient: 'from-blue-50 to-white dark:from-blue-950 dark:to-gray-900',
     },
     {
       title: 'Ativos',
       value: stats.active,
       icon: PlayCircle,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      iconBg: 'bg-green-500',
+      borderColor: 'border-l-green-500',
+      gradient: 'from-green-50 to-white dark:from-green-950 dark:to-gray-900',
     },
     {
       title: 'Pausados',
       value: stats.paused,
       icon: PauseCircle,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-100',
+      iconBg: 'bg-amber-500',
+      borderColor: 'border-l-amber-500',
+      gradient: 'from-amber-50 to-white dark:from-amber-950 dark:to-gray-900',
     },
     {
       title: 'Fechados',
       value: stats.closed,
       icon: XCircle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100',
+      iconBg: 'bg-red-500',
+      borderColor: 'border-l-red-500',
+      gradient: 'from-red-50 to-white dark:from-red-950 dark:to-gray-900',
     },
   ];
 
@@ -46,19 +50,19 @@ export function ProductStats({ stats }: ProductStatsProps) {
       {statCards.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.title}>
+          <Card key={stat.title} className={`border-l-4 ${stat.borderColor} bg-gradient-to-br ${stat.gradient}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
+              <CardTitle className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                 {stat.title}
               </CardTitle>
-              <div className={`rounded-full p-2 ${stat.bgColor}`}>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
+              <div className={`rounded-full p-2.5 ${stat.iconBg}`}>
+                <Icon className="h-5 w-5 text-white" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(stat.value)}</div>
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">{formatNumber(stat.value)}</div>
               {stat.title === 'Total de Produtos' && stats.total > 0 && (
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
                   {Math.round((stats.active / stats.total) * 100)}% ativos
                 </p>
               )}
