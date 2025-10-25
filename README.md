@@ -46,7 +46,30 @@ painelML/
 
 ```
 
-## 🚀 Quick Start
+## 🚀 Quick Start (NOVO - Automatizado!)
+
+### Opção 1: Script Automatizado (Recomendado) ⚡
+
+```bash
+# 1. Iniciar tudo de uma vez
+bash start-with-tunnel.sh
+
+# 2. Copiar a URL mostrada e atualizar no painel do ML
+#    https://developers.mercadolibre.com.br/apps
+
+# 3. Em outro terminal, iniciar o frontend
+cd frontend && npm run dev
+
+# 4. Acessar: http://localhost:3000
+```
+
+**Tempo total: ~30 segundos!** 🎉
+
+📖 **Guia completo**: [GUIA_RAPIDO_TUNNEL.md](./GUIA_RAPIDO_TUNNEL.md)
+
+---
+
+### Opção 2: Manual (Passo a Passo)
 
 ### 1. Instalar Docker
 ```bash

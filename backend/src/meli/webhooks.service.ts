@@ -123,7 +123,7 @@ export class WebhooksService {
       total,
       processed,
       pending,
-      byTopic: byTopic.map((t) => ({ topic: t.topic, count: t._count })),
+      byTopic: byTopic.map((t: any) => ({ topic: t.topic, count: t._count })),
     };
   }
 }
