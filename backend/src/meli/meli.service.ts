@@ -218,6 +218,45 @@ export class MeliService {
   }
 
   /**
+   * Busca SLA (prazo de despacho) de um shipment
+   */
+  async getShipmentSLA(accountId: string, shipmentId: string) {
+    const url = `https://api.mercadolibre.com/shipments/${shipmentId}/sla`;
+    try {
+      return await this.makeAuthenticatedRequest(accountId, url);
+    } catch (error) {
+      this.logger.warn(`Could not fetch SLA for shipment ${shipmentId}: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Busca Lead Time (prazos de entrega) de um shipment
+   */
+  async getShipmentLeadTime(accountId: string, shipmentId: string) {
+    const url = `https://api.mercadolibre.com/shipments/${shipmentId}/lead_time`;
+    try {
+      return await this.makeAuthenticatedRequest(accountId, url);
+    } catch (error) {
+      this.logger.warn(`Could not fetch lead time for shipment ${shipmentId}: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Busca atrasos de um shipment
+   */
+  async getShipmentDelays(accountId: string, shipmentId: string) {
+    const url = `https://api.mercadolibre.com/shipments/${shipmentId}/delays`;
+    try {
+      return await this.makeAuthenticatedRequest(accountId, url);
+    } catch (error) {
+      this.logger.warn(`Could not fetch delays for shipment ${shipmentId}: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
    * Busca uma pergunta específica
    */
   async getQuestion(accountId: string, questionId: string) {

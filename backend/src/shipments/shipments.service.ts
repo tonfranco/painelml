@@ -40,6 +40,23 @@ export class ShipmentsService {
   }
 
   /**
+   * Busca shipments pendentes de despacho
+   */
+  async findPendingShipments(accountId: string) {
+    return this.prisma.shipment.findMany({
+      where: {
+        accountId,
+        status: { in: ['pending', 'handling', 'ready_to_ship'] },
+      },
+      select: {
+        id: true,
+        meliShipmentId: true,
+        status: true,
+      },
+    });
+  }
+
+  /**
    * Sincroniza um shipment específico do Mercado Livre
    */
   async syncShipment(accountId: string, shipmentId: string) {
@@ -100,11 +117,55 @@ export class ShipmentsService {
         },
       });
 
+      // Buscar SLA e Lead Time se o shipment estiver pendente de despacho
+      if (['pending', 'handling', 'ready_to_ship'].includes(shipmentData.status)) {
+        await this.syncShipmentSLA(accountId, shipmentId);
+      }
+
       this.logger.log(`Shipment ${shipmentId} synced successfully`);
       return shipment;
     } catch (error) {
       this.logger.error(`Error syncing shipment ${shipmentId}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Sincroniza SLA e Lead Time de um shipment
+   */
+  async syncShipmentSLA(accountId: string, shipmentId: string) {
+    try {
+      this.logger.log(`Syncing SLA for shipment ${shipmentId}`);
+
+      // Buscar SLA
+      const slaData = await this.meliApi.getShipmentSLA(accountId, shipmentId);
+      
+      // Buscar Lead Time
+      const leadTimeData = await this.meliApi.getShipmentLeadTime(accountId, shipmentId);
+
+      // Atualizar shipment com dados de SLA e Lead Time
+      await this.prisma.shipment.update({
+        where: { meliShipmentId: shipmentId },
+        data: {
+          slaStatus: slaData?.status,
+          slaService: slaData?.service,
+          slaExpectedDate: slaData?.expected_date ? new Date(slaData.expected_date) : null,
+          slaLastUpdated: slaData?.last_updated ? new Date(slaData.last_updated) : null,
+          handlingLimit: leadTimeData?.estimated_handling_limit?.date 
+            ? new Date(leadTimeData.estimated_handling_limit.date) 
+            : null,
+          deliveryLimit: leadTimeData?.estimated_delivery_limit?.date 
+            ? new Date(leadTimeData.estimated_delivery_limit.date) 
+            : null,
+          deliveryFinal: leadTimeData?.estimated_delivery_final?.date 
+            ? new Date(leadTimeData.estimated_delivery_final.date) 
+            : null,
+        },
+      });
+
+      this.logger.log(`SLA synced for shipment ${shipmentId}`);
+    } catch (error) {
+      this.logger.warn(`Could not sync SLA for shipment ${shipmentId}: ${error.message}`);
     }
   }
 

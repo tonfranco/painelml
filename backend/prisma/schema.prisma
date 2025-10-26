@@ -98,6 +98,15 @@ model Shipment {
   receiverAddress String?  // JSON com endereço completo
   senderAddress   String?  // JSON com endereço completo
   cost            Float?
+  // SLA - Prazo de despacho
+  slaStatus       String?  // on_time, delayed
+  slaService      String?  // xd_same_day, next_day, standard
+  slaExpectedDate DateTime? // Data limite para despacho
+  slaLastUpdated  DateTime?
+  // Lead Time - Prazos de entrega
+  handlingLimit   DateTime? // Prazo para despachar
+  deliveryLimit   DateTime? // Prazo para entregar
+  deliveryFinal   DateTime? // Prazo final
   updatedAt       DateTime @updatedAt
   createdAt       DateTime @default(now())
 
@@ -106,6 +115,8 @@ model Shipment {
   @@index([accountId])
   @@index([orderId])
   @@index([status])
+  @@index([slaExpectedDate])
+  @@index([slaStatus])
 }
 
 model Question {

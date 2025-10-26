@@ -43,4 +43,36 @@ export class ShipmentsController {
     }
     return this.shipmentsService.backfillShipments(accountId);
   }
+
+  @Post('sync-sla')
+  async syncSLA(@Query('accountId') accountId: string) {
+    if (!accountId) {
+      return { error: 'accountId is required' };
+    }
+    
+    this.logger.log(`Syncing SLA for pending shipments of account ${accountId}`);
+    
+    // Buscar shipments pendentes
+    const shipments = await this.shipmentsService.findPendingShipments(accountId);
+    
+    let syncedCount = 0;
+    let errorCount = 0;
+    
+    for (const shipment of shipments) {
+      try {
+        await this.shipmentsService.syncShipmentSLA(accountId, shipment.meliShipmentId);
+        syncedCount++;
+      } catch (error) {
+        this.logger.error(`Error syncing SLA for ${shipment.meliShipmentId}: ${error.message}`);
+        errorCount++;
+      }
+    }
+    
+    return {
+      message: `SLA sync completed`,
+      syncedCount,
+      errorCount,
+      total: shipments.length,
+    };
+  }
 }

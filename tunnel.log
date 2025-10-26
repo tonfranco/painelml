@@ -20,3 +20,4 @@
 2025-10-25T21:56:21Z INF Starting metrics server on 127.0.0.1:20241/metrics
 2025-10-25T21:56:21Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveP256] connIndex=0 event=0 ip=198.41.192.57
 2025-10-25T21:56:21Z INF Registered tunnel connection connIndex=0 connection=e0ff773b-dad8-476b-9d3c-1279decacf8e event=0 ip=198.41.192.57 location=gig08 protocol=quic
+2025-10-26T21:56:21Z ERR update check failed error="no release found"

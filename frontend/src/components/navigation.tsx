@@ -7,6 +7,7 @@ import {
   Package, 
   ShoppingCart, 
   MessageCircle,
+  Truck,
   Settings,
   LogOut
 } from 'lucide-react';
@@ -17,6 +18,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Produtos', href: '/products', icon: Package },
   { name: 'Pedidos', href: '/orders', icon: ShoppingCart },
+  { name: 'Próximos Envios', href: '/pending-shipments', icon: Truck },
   { name: 'Perguntas', href: '/questions', icon: MessageCircle },
   { name: 'Configurações', href: '/settings', icon: Settings },
 ];
