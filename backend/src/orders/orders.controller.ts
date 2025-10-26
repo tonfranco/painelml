@@ -1,9 +1,13 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Post, Query } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrdersService } from './orders.service';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ordersService: OrdersService,
+  ) {}
 
   @Get()
   async list(@Query('accountId') accountId?: string, @Query('days') days?: string) {
@@ -66,6 +70,35 @@ export class OrdersController {
       cancelled,
       pending,
       totalAmount: totalAmount._sum.totalAmount || 0,
+    };
+  }
+
+  @Post('resync')
+  async resync(@Query('accountId') accountId: string) {
+    if (!accountId) {
+      return { error: 'accountId is required' };
+    }
+
+    // Buscar todos os pedidos da conta
+    const orders = await this.prisma.order.findMany({
+      where: { accountId },
+      select: { meliOrderId: true },
+      take: 50, // Limitar para não sobrecarregar
+    });
+
+    const results = [];
+    for (const order of orders) {
+      try {
+        await this.ordersService.syncOrder(accountId, order.meliOrderId);
+        results.push({ orderId: order.meliOrderId, status: 'success' });
+      } catch (error) {
+        results.push({ orderId: order.meliOrderId, status: 'error', error: error.message });
+      }
+    }
+
+    return {
+      message: `Re-synced ${results.length} orders`,
+      results,
     };
   }
 }
