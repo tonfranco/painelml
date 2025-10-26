@@ -202,6 +202,14 @@ export class MeliService {
   }
 
   /**
+   * Busca informações de um item/produto
+   */
+  async getItem(accountId: string, itemId: string) {
+    const url = `https://api.mercadolibre.com/items/${itemId}`;
+    return this.makeAuthenticatedRequest(accountId, url);
+  }
+
+  /**
    * Busca informações de um shipment
    */
   async getShipment(accountId: string, shipmentId: string) {

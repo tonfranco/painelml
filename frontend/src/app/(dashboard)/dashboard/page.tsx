@@ -1,16 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Package, ShoppingCart, MessageCircle, TrendingUp } from 'lucide-react';
+import { Package, ShoppingCart, MessageCircle, TrendingUp, RefreshCw } from 'lucide-react';
 import { useItemsStats } from '@/hooks/useItems';
 import { useOrdersStats } from '@/hooks/useOrders';
 import { useQuestionsStats } from '@/hooks/useQuestions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { Loading } from '@/components/ui/loading';
 
 export default function DashboardPage() {
   const [accountId, setAccountId] = useState<string>('');
+  const [syncing, setSyncing] = useState(false);
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
 
   useEffect(() => {
     const id = localStorage.getItem('accountId');
@@ -19,9 +22,39 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const { data: itemsStats, isLoading: loadingItems } = useItemsStats(accountId);
-  const { data: ordersStats, isLoading: loadingOrders } = useOrdersStats(accountId);
-  const { data: questionsStats, isLoading: loadingQuestions } = useQuestionsStats(accountId);
+  const { data: itemsStats, isLoading: loadingItems, refetch: refetchItems } = useItemsStats(accountId);
+  const { data: ordersStats, isLoading: loadingOrders, refetch: refetchOrders } = useOrdersStats(accountId);
+  const { data: questionsStats, isLoading: loadingQuestions, refetch: refetchQuestions } = useQuestionsStats(accountId);
+
+  const handleSync = async () => {
+    if (!accountId) {
+      alert("ID da conta não encontrado");
+      return;
+    }
+    
+    setSyncing(true);
+    try {
+      const res = await fetch(`${apiBase}/sync/${accountId}/start`, {
+        method: "POST",
+      });
+      
+      if (res.ok) {
+        alert("Sincronização iniciada! Os dados serão atualizados em alguns segundos.");
+        // Aguardar 5 segundos e recarregar os dados
+        setTimeout(() => {
+          refetchItems();
+          refetchOrders();
+          refetchQuestions();
+        }, 5000);
+      } else {
+        alert("Erro ao iniciar sincronização");
+      }
+    } catch (e: any) {
+      alert("Erro: " + (e?.message || String(e)));
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const isLoading = loadingItems || loadingOrders || loadingQuestions;
 
@@ -44,11 +77,22 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="mt-1 text-lg text-gray-700 dark:text-gray-300">
-          Visão geral do seu negócio no Mercado Livre
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="mt-1 text-lg text-gray-700 dark:text-gray-300">
+            Visão geral do seu negócio no Mercado Livre
+          </p>
+        </div>
+        <Button
+          onClick={handleSync}
+          disabled={syncing || isLoading}
+          className="bg-gradient-to-r from-blue-500 to-purple-500 font-bold"
+          size="lg"
+        >
+          <RefreshCw className={`mr-2 h-5 w-5 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Sincronizando...' : 'Sincronizar ML'}
+        </Button>
       </div>
 
       {/* Stats Grid */}

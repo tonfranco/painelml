@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { RefreshCw, ShoppingCart } from "lucide-react";
+import { RefreshCw, ShoppingCart, ExternalLink, User, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -11,6 +11,10 @@ type Order = {
   totalAmount: number;
   dateCreated: string;
   buyerId: string | null;
+  buyerNickname: string | null;
+  itemId: string | null;
+  itemTitle: string | null;
+  itemPermalink: string | null;
   updatedAt: string;
 };
 
@@ -157,6 +161,12 @@ export default function OrdersPage() {
                       Order ID
                     </th>
                     <th className="px-6 py-4 font-bold text-gray-900 dark:text-white">
+                      Produto
+                    </th>
+                    <th className="px-6 py-4 font-bold text-gray-900 dark:text-white">
+                      Comprador
+                    </th>
+                    <th className="px-6 py-4 font-bold text-gray-900 dark:text-white">
                       Status
                     </th>
                     <th className="px-6 py-4 font-bold text-gray-900 dark:text-white">
@@ -164,9 +174,6 @@ export default function OrdersPage() {
                     </th>
                     <th className="px-6 py-4 font-bold text-gray-900 dark:text-white">
                       Data
-                    </th>
-                    <th className="px-6 py-4 font-bold text-gray-900 dark:text-white">
-                      Comprador
                     </th>
                   </tr>
                 </thead>
@@ -180,8 +187,45 @@ export default function OrdersPage() {
                         {order.meliOrderId}
                       </td>
                       <td className="px-6 py-4">
+                        {order.itemTitle ? (
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-blue-500" />
+                            <div className="flex-1">
+                              <p className="font-bold text-gray-900 dark:text-white line-clamp-1">
+                                {order.itemTitle}
+                              </p>
+                              {order.itemPermalink && (
+                                <a
+                                  href={order.itemPermalink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
+                                >
+                                  Ver anúncio
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {order.buyerNickname ? (
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-purple-500" />
+                            <span className="font-bold text-gray-900 dark:text-white">
+                              {order.buyerNickname}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
                         <span
-                          className={`inline-block rounded-full px-3 py-1 text-xs ${statusColor(
+                          className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${statusColor(
                             order.status
                           )}`}
                         >
@@ -199,9 +243,6 @@ export default function OrdersPage() {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
-                      </td>
-                      <td className="px-6 py-4 font-medium text-gray-700 dark:text-gray-300">
-                        {order.buyerId || "-"}
                       </td>
                     </tr>
                   ))}

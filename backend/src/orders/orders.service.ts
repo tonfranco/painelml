@@ -20,6 +20,22 @@ export class OrdersService {
 
       const orderData = await this.meliService.getOrder(accountId, orderId);
 
+      // Extrair informações do primeiro item (geralmente pedidos têm 1 item)
+      const firstItem = orderData.order_items?.[0];
+      const itemId = firstItem?.item?.id;
+      const itemTitle = firstItem?.item?.title;
+      
+      // Buscar permalink do item se tivermos o ID
+      let itemPermalink = null;
+      if (itemId) {
+        try {
+          const itemData = await this.meliService.getItem(accountId, itemId);
+          itemPermalink = itemData.permalink;
+        } catch (error) {
+          this.logger.warn(`Could not fetch item permalink for ${itemId}`);
+        }
+      }
+
       const order = await this.prisma.order.upsert({
         where: { meliOrderId: orderId },
         create: {
@@ -29,11 +45,19 @@ export class OrdersService {
           totalAmount: orderData.total_amount || 0,
           dateCreated: new Date(orderData.date_created),
           buyerId: orderData.buyer?.id?.toString(),
+          buyerNickname: orderData.buyer?.nickname,
+          itemId,
+          itemTitle,
+          itemPermalink,
         },
         update: {
           status: orderData.status,
           totalAmount: orderData.total_amount || 0,
           buyerId: orderData.buyer?.id?.toString(),
+          buyerNickname: orderData.buyer?.nickname,
+          itemId,
+          itemTitle,
+          itemPermalink,
         },
       });
 

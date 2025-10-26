@@ -69,6 +69,10 @@ model Order {
   totalAmount   Float
   dateCreated   DateTime
   buyerId       String?
+  buyerNickname String?  // Nome do comprador
+  itemId        String?  // ID do produto
+  itemTitle     String?  // Título do produto
+  itemPermalink String?  // Link do anúncio
   updatedAt     DateTime @updatedAt
   createdAt     DateTime @default(now())
 
