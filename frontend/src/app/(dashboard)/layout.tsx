@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { CommandPalette } from '@/components/command-palette';
+import { ToastProvider } from '@/components/ui/toast';
 import { useState, useEffect } from 'react';
 
 export default function DashboardLayout({
@@ -26,7 +27,7 @@ export default function DashboardLayout({
   }, []);
 
   return (
-    <>
+    <ToastProvider>
       <div className="flex h-screen overflow-hidden bg-background">
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
@@ -38,6 +39,6 @@ export default function DashboardLayout({
         </div>
       </div>
       <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
-    </>
+    </ToastProvider>
   );
 }

@@ -53,6 +53,9 @@ model Item {
   thumbnail   String?
   picture     String?  // Imagem em alta resolução
   permalink   String?  // Link do anúncio no ML
+  has_bids    Boolean  @default(false) // Indica se o item possui lances ativos
+  buying_mode String?  // Modo de compra (buy_it_now, auction, etc)
+  listing_type_id String? // Tipo de listagem (bronze, silver, gold, etc)
   updatedAt   DateTime @updatedAt
   createdAt   DateTime @default(now())
 

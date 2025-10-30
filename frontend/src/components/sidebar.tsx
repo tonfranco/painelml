@@ -11,7 +11,8 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Edit
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from './theme-toggle';
@@ -20,6 +21,7 @@ import { Button } from './ui/button';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Produtos', href: '/products', icon: Package },
+  { name: 'Gerenciar Anúncios', href: '/products-management', icon: Edit },
   { name: 'Pedidos', href: '/orders', icon: ShoppingCart },
   { name: 'Perguntas', href: '/questions', icon: MessageCircle },
   { name: 'Configurações', href: '/settings', icon: Settings },

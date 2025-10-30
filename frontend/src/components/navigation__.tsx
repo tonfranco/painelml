@@ -8,6 +8,7 @@ import {
   ShoppingCart, 
   MessageCircle,
   Truck,
+  Edit,
   Settings,
   LogOut
 } from 'lucide-react';
@@ -16,11 +17,7 @@ import { ThemeToggle } from './theme-toggle';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Produtos', href: '/products', icon: Package },
-  { name: 'Pedidos', href: '/orders', icon: ShoppingCart },
-  { name: 'Próximos Envios', href: '/pending-shipments', icon: Truck },
-  { name: 'Perguntas', href: '/questions', icon: MessageCircle },
-  { name: 'Configurações', href: '/settings', icon: Settings },
+  { name: 'Produtos', href: '/products', icon: Package }
 ];
 
 export function Navigation() {

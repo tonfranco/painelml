@@ -153,10 +153,64 @@ export class MeliService {
   }
 
   /**
+   * Renova o access token usando o refresh token
+   */
+  async refreshAccessToken(accountId: string): Promise<string> {
+    const tokens = await this.accountsService.getDecryptedTokens(accountId);
+    if (!tokens || !tokens.refreshToken) {
+      throw new HttpException('No refresh token found', HttpStatus.UNAUTHORIZED);
+    }
+
+    const { clientId, clientSecret } = this.getConfig();
+
+    try {
+      this.logger.log(`Refreshing access token for account ${accountId}`);
+      
+      const response = await axios.post('https://api.mercadolibre.com/oauth/token', {
+        grant_type: 'refresh_token',
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: tokens.refreshToken,
+      });
+
+      const data = response.data;
+
+      // Atualizar tokens no banco
+      const account = await this.prisma.account.findUnique({
+        where: { id: accountId },
+      });
+
+      if (!account) {
+        throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
+      }
+
+      await this.accountsService.saveAccountWithTokens(
+        { sellerId: account.sellerId },
+        {
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
+          tokenType: data.token_type || 'Bearer',
+          scope: data.scope || '',
+          expiresIn: data.expires_in,
+        },
+      );
+
+      this.logger.log(`✅ Token refreshed successfully for account ${accountId}`);
+      return data.access_token;
+    } catch (error: any) {
+      this.logger.error(`Error refreshing token: ${error.message}`);
+      throw new HttpException(
+        'Failed to refresh access token. Please re-authenticate.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+  }
+
+  /**
    * Faz uma requisição autenticada à API do Mercado Livre
    */
   async makeAuthenticatedRequest(accountId: string, url: string, options: any = {}) {
-    const accessToken = await this.getAccessToken(accountId);
+    let accessToken = await this.getAccessToken(accountId);
 
     try {
       const response = await axios({
@@ -170,12 +224,63 @@ export class MeliService {
         validateStatus: () => true,
       });
 
+      // Se receber 401, tentar renovar o token e fazer a requisição novamente
+      if (response.status === 401) {
+        this.logger.warn(`Token expired for account ${accountId}, refreshing...`);
+        
+        try {
+          accessToken = await this.refreshAccessToken(accountId);
+          
+          // Tentar novamente com o novo token
+          const retryResponse = await axios({
+            url,
+            ...options,
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              ...options.headers,
+            },
+            timeout: 15000,
+            validateStatus: () => true,
+          });
+
+          if (retryResponse.status >= 400) {
+            this.logger.error(
+              `ML API error after token refresh: ${retryResponse.status} - ${JSON.stringify(retryResponse.data)}`,
+            );
+            throw new HttpException(
+              `ML API error: ${retryResponse.status} - ${retryResponse.data.message || 'Unknown error'}`,
+              retryResponse.status,
+            );
+          }
+
+          return retryResponse.data;
+        } catch (refreshError: any) {
+          this.logger.error(`Failed to refresh token: ${refreshError.message}`);
+          throw new HttpException(
+            'Token expired. Please re-authenticate your Mercado Livre account.',
+            HttpStatus.UNAUTHORIZED,
+          );
+        }
+      }
+
       if (response.status >= 400) {
+        const errorData = response.data;
+        let errorMessage = 'Unknown error';
+        
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.cause && Array.isArray(errorData.cause)) {
+          errorMessage = errorData.cause.map((c: any) => `${c.code || ''}: ${c.message || c}`).join('; ');
+        }
+        
         this.logger.error(
-          `ML API error: ${response.status} - ${JSON.stringify(response.data)}`,
+          `ML API error: ${response.status} - ${errorMessage} - Full response: ${JSON.stringify(errorData)}`,
         );
+        
         throw new HttpException(
-          `ML API error: ${response.status}`,
+          `ML API error: ${response.status} - ${errorMessage}`,
           response.status,
         );
       }
@@ -207,6 +312,68 @@ export class MeliService {
   async getItem(accountId: string, itemId: string) {
     const url = `https://api.mercadolibre.com/items/${itemId}`;
     return this.makeAuthenticatedRequest(accountId, url);
+  }
+
+  /**
+   * Cria um novo item/anúncio
+   */
+  async createItem(accountId: string, itemData: any) {
+    const url = `https://api.mercadolibre.com/items`;
+    
+    this.logger.log(`Creating item with data: ${JSON.stringify(itemData, null, 2)}`);
+    
+    try {
+      const result = await this.makeAuthenticatedRequest(accountId, url, {
+        method: 'POST',
+        data: itemData,
+      });
+      
+      this.logger.log(`Item created successfully: ${result.id}`);
+      return result;
+    } catch (error: any) {
+      this.logger.error(`Failed to create item: ${error.message}`);
+      if (error.response?.data) {
+        this.logger.error(`API Response: ${JSON.stringify(error.response.data, null, 2)}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Atualiza um item/anúncio existente
+   */
+  async updateItem(accountId: string, itemId: string, itemData: any) {
+    const url = `https://api.mercadolibre.com/items/${itemId}`;
+    return this.makeAuthenticatedRequest(accountId, url, {
+      method: 'PUT',
+      data: itemData,
+    });
+  }
+
+  /**
+   * Atualiza estoque de um item
+   */
+  async updateStock(accountId: string, itemId: string, quantity: number) {
+    const url = `https://api.mercadolibre.com/items/${itemId}`;
+    return this.makeAuthenticatedRequest(accountId, url, {
+      method: 'PUT',
+      data: {
+        available_quantity: quantity,
+      },
+    });
+  }
+
+  /**
+   * Atualiza preço de um item
+   */
+  async updatePrice(accountId: string, itemId: string, price: number) {
+    const url = `https://api.mercadolibre.com/items/${itemId}`;
+    return this.makeAuthenticatedRequest(accountId, url, {
+      method: 'PUT',
+      data: {
+        price: price,
+      },
+    });
   }
 
   /**
