@@ -12,6 +12,8 @@ import { QuestionsModule } from './questions/questions.module';
 import { QueueModule } from './queue/queue.module';
 import { WorkersModule } from './workers/workers.module';
 import { SettingsModule } from './settings/settings.module';
+import { BillingModule } from './billing/billing.module';
+import { ExpensesModule } from './expenses/expenses.module';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { SettingsModule } from './settings/settings.module';
     QueueModule,
     WorkersModule,
     SettingsModule,
+    BillingModule,
+    ExpensesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

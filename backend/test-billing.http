@@ -1,0 +1,52 @@
+### Testes do Módulo Billing
+### Use a extensão REST Client do VS Code para executar
+
+### Variáveis
+@baseUrl = http://localhost:4000
+@accountId = cmh3r4euy0000ytriw7xq545g
+
+### ============================================
+### 1. Sincronizar Períodos de Faturamento
+### ============================================
+POST {{baseUrl}}/billing/sync?accountId={{accountId}}
+
+### ============================================
+### 2. Listar Períodos de Faturamento
+### ============================================
+GET {{baseUrl}}/billing/periods?accountId={{accountId}}
+
+### ============================================
+### 3. Listar Períodos com Limite
+### ============================================
+GET {{baseUrl}}/billing/periods?accountId={{accountId}}&limit=6
+
+### ============================================
+### 4. Listar Períodos com Status Específico
+### ============================================
+GET {{baseUrl}}/billing/periods?accountId={{accountId}}&status=CLOSED
+
+### ============================================
+### 5. Ver Estatísticas Financeiras (12 meses)
+### ============================================
+GET {{baseUrl}}/billing/stats?accountId={{accountId}}
+
+### ============================================
+### 6. Ver Estatísticas Financeiras (6 meses)
+### ============================================
+GET {{baseUrl}}/billing/stats?accountId={{accountId}}&months=6
+
+### ============================================
+### 7. Ver Detalhes de um Período Específico
+### ============================================
+### Primeiro execute o endpoint #2 para pegar um periodId
+### Depois substitua PERIOD_ID_AQUI pelo ID real
+GET {{baseUrl}}/billing/periods/PERIOD_ID_AQUI
+
+### ============================================
+### NOTAS:
+### ============================================
+### 1. Certifique-se que o backend está rodando: npm run start:dev
+### 2. Instale a extensão "REST Client" no VS Code
+### 3. Clique em "Send Request" acima de cada requisição
+### 4. O accountId usado é o mesmo do seu sistema
+### 5. Execute o endpoint #1 primeiro para sincronizar os dados

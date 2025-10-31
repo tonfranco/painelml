@@ -12,7 +12,9 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Edit
+  Edit,
+  Bus,
+  DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from './theme-toggle';
@@ -23,7 +25,9 @@ const navigation = [
   { name: 'Produtos', href: '/products', icon: Package },
   { name: 'Gerenciar Anúncios', href: '/products-management', icon: Edit },
   { name: 'Pedidos', href: '/orders', icon: ShoppingCart },
+  { name: 'Próximos Envios', href: '/pending-shipments', icon: Bus },
   { name: 'Perguntas', href: '/questions', icon: MessageCircle },
+  { name: 'Financeiro', href: '/financial', icon: DollarSign },
   { name: 'Configurações', href: '/settings', icon: Settings },
 ];
 

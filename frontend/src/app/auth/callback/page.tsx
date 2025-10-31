@@ -18,9 +18,9 @@ export default function AuthCallbackPage() {
       
       toast.success('Conta conectada com sucesso!');
       
-      // Redirecionar para produtos
+      // Redirecionar para dashboard
       setTimeout(() => {
-        router.push('/products');
+        router.push('/dashboard');
       }, 1000);
     } else {
       toast.error('Erro ao conectar conta');

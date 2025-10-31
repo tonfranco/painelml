@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Package, ShoppingCart, MessageCircle, TrendingUp, RefreshCw } from 'lucide-react';
+import { Package, ShoppingCart, MessageCircle, TrendingUp, RefreshCw, Truck, Settings, Edit, DollarSign } from 'lucide-react';
 import { useItemsStats } from '@/hooks/useItems';
 import { useOrdersStats } from '@/hooks/useOrders';
 import { useQuestionsStats } from '@/hooks/useQuestions';
@@ -181,7 +181,7 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <div className="mt-8">
         <h2 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">Acesso Rápido</h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card className="cursor-pointer border-l-4 border-l-blue-500 bg-gradient-to-br from-blue-50 to-white transition-all hover:shadow-lg hover:scale-105 dark:from-blue-950 dark:to-gray-900">
             <CardContent className="p-6">
               <a href="/products" className="block">
@@ -191,6 +191,20 @@ export default function DashboardPage() {
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Produtos</h3>
                 <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
                   Gerencie seu catálogo
+                </p>
+              </a>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer border-l-4 border-l-purple-500 bg-gradient-to-br from-purple-50 to-white transition-all hover:shadow-lg hover:scale-105 dark:from-purple-950 dark:to-gray-900">
+            <CardContent className="p-6">
+              <a href="/products-management" className="block">
+                <div className="mb-3 inline-block rounded-lg bg-purple-500 p-3">
+                  <Edit className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Gerenciar Anúncios</h3>
+                <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                  Edite preços e estoque
                 </p>
               </a>
             </CardContent>
@@ -210,6 +224,20 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
+          <Card className="cursor-pointer border-l-4 border-l-cyan-500 bg-gradient-to-br from-cyan-50 to-white transition-all hover:shadow-lg hover:scale-105 dark:from-cyan-950 dark:to-gray-900">
+            <CardContent className="p-6">
+              <a href="/pending-shipments" className="block">
+                <div className="mb-3 inline-block rounded-lg bg-cyan-500 p-3">
+                  <Truck className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Próximos Envios</h3>
+                <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                  Gerencie entregas
+                </p>
+              </a>
+            </CardContent>
+          </Card>
+
           <Card className="cursor-pointer border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-50 to-white transition-all hover:shadow-lg hover:scale-105 dark:from-amber-950 dark:to-gray-900">
             <CardContent className="p-6">
               <a href="/questions" className="block">
@@ -219,6 +247,34 @@ export default function DashboardPage() {
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Perguntas</h3>
                 <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
                   Responda seus clientes
+                </p>
+              </a>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-50 to-white transition-all hover:shadow-lg hover:scale-105 dark:from-emerald-950 dark:to-gray-900">
+            <CardContent className="p-6">
+              <a href="/financial" className="block">
+                <div className="mb-3 inline-block rounded-lg bg-emerald-500 p-3">
+                  <DollarSign className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Financeiro</h3>
+                <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                  Faturamento e custos
+                </p>
+              </a>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer border-l-4 border-l-gray-500 bg-gradient-to-br from-gray-50 to-white transition-all hover:shadow-lg hover:scale-105 dark:from-gray-950 dark:to-gray-900">
+            <CardContent className="p-6">
+              <a href="/settings" className="block">
+                <div className="mb-3 inline-block rounded-lg bg-gray-500 p-3">
+                  <Settings className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Configurações</h3>
+                <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                  Personalize o sistema
                 </p>
               </a>
             </CardContent>

@@ -12,18 +12,20 @@ datasource db {
 }
 
 model Account {
-  id         String         @id @default(cuid())
-  sellerId   String         @unique
-  nickname   String?
-  siteId     String?
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-  tokens     AccountToken[]
-  items      Item[]
-  orders     Order[]
-  shipments  Shipment[]
-  questions  Question[]
-  settings   Settings?
+  id             String          @id @default(cuid())
+  sellerId       String          @unique
+  nickname       String?
+  siteId         String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  tokens         AccountToken[]
+  items          Item[]
+  orders         Order[]
+  shipments      Shipment[]
+  questions      Question[]
+  settings       Settings?
+  billingPeriods BillingPeriod[]
+  expenses       Expense[]
 }
 
 model AccountToken {
@@ -190,4 +192,103 @@ model Settings {
   account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
   
   @@index([accountId])
+}
+
+// Módulo Financeiro
+model BillingPeriod {
+  id                String   @id @default(cuid())
+  accountId         String
+  
+  // Identificação do período
+  periodKey         String   // Ex: "2024-06-01"
+  dateFrom          DateTime
+  dateTo            DateTime
+  expirationDate    DateTime
+  
+  // Status
+  periodStatus      String   // OPEN, CLOSED, PAID
+  
+  // Valores totais
+  totalAmount       Float    @default(0) // Faturamento bruto
+  unpaidAmount      Float    @default(0) // Valor não pago
+  taxAmount         Float    @default(0) // Total de impostos
+  feesAmount        Float    @default(0) // Total de taxas
+  netAmount         Float    @default(0) // Faturamento líquido
+  
+  // Metadados
+  rawData           Json?    // Dados brutos da API ML
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  account           Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  charges           BillingCharge[]
+  
+  @@unique([accountId, periodKey])
+  @@index([accountId])
+  @@index([periodKey])
+  @@index([periodStatus])
+}
+
+model BillingCharge {
+  id                String   @id @default(cuid())
+  periodId          String
+  accountId         String
+  
+  // Tipo de cobrança
+  chargeType        String   // SALE, FEE_ML, FEE_MP, TAX, BONUS, SHIPPING, OTHER
+  category          String?  // Categoria específica (ex: "Comissão", "IVA", "IIBB")
+  description       String   // Descrição da cobrança
+  
+  // Valores
+  amount            Float
+  
+  // Referências
+  referenceId       String?  // ID do pedido, item, etc
+  referenceType     String?  // order, item, payment
+  
+  // Data
+  chargeDate        DateTime
+  
+  // Metadados
+  rawData           Json?    // Dados brutos da API ML
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  period            BillingPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  
+  @@index([periodId])
+  @@index([accountId])
+  @@index([chargeType])
+  @@index([chargeDate])
+}
+
+// Despesas Fixas
+model Expense {
+  id          String   @id @default(cuid())
+  accountId   String
+  
+  // Informações da despesa
+  name        String   // Ex: "Contador", "Aluguel"
+  category    String   // CONTADOR, EMBALAGEM, ALUGUEL, MARKETING, OUTROS
+  amount      Float    // Valor mensal
+  description String?  // Descrição opcional
+  
+  // Recorrência
+  isRecurring Boolean  @default(true) // Se é despesa recorrente
+  startDate   DateTime @default(now()) // Data de início
+  endDate     DateTime? // Data de fim (null = sem fim)
+  
+  // Status
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  @@index([accountId])
+  @@index([category])
+  @@index([isActive])
 }

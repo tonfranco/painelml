@@ -1,0 +1,31 @@
+### Debug Billing API - Verificar Token e Permissões
+
+@baseUrl = http://localhost:4000
+@accountId = cmh3r4euy0000ytriw7xq545g
+
+### ============================================
+### 1. Verificar Account e Token
+### ============================================
+GET {{baseUrl}}/accounts
+
+### ============================================
+### 2. Testar acesso direto à API ML (User Info)
+### ============================================
+### Copie o accessToken do resultado acima e cole aqui:
+@accessToken = SEU_ACCESS_TOKEN_AQUI
+
+### Testar endpoint básico do ML
+GET https://api.mercadolibre.com/users/me
+Authorization: Bearer {{accessToken}}
+
+### ============================================
+### 3. Testar endpoint de billing diretamente
+### ============================================
+GET https://api.mercadolibre.com/billing/integration/monthly/periods
+Authorization: Bearer {{accessToken}}
+
+### ============================================
+### 4. Testar endpoint alternativo (orders com dados financeiros)
+### ============================================
+GET https://api.mercadolibre.com/orders/search?seller=SEU_SELLER_ID&sort=date_desc&limit=5
+Authorization: Bearer {{accessToken}}
