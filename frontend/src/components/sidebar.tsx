@@ -15,7 +15,10 @@ import {
   Edit,
   Bus,
   DollarSign,
-  TrendingUp
+  TrendingUp,
+  FileText,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from './theme-toggle';
@@ -30,12 +33,19 @@ const navigation = [
   { name: 'Perguntas', href: '/questions', icon: MessageCircle },
   { name: 'Financeiro', href: '/financial', icon: DollarSign },
   { name: 'Fluxo de Caixa', href: '/cash-flow', icon: TrendingUp },
-  { name: 'Configurações', href: '/settings', icon: Settings },
+];
+
+const reportsSubmenu = [
+  { name: 'Vendas', href: '/reports/sales', icon: ShoppingCart },
+  { name: 'Financeiro', href: '/reports/financial', icon: DollarSign },
+  { name: 'Produtos', href: '/reports/products', icon: Package },
+  { name: 'Envios', href: '/reports/shipments', icon: Bus },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(false);
 
   return (
     <div 
@@ -64,7 +74,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-2 py-4">
+      <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
         {navigation.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -87,6 +97,76 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Relatórios Menu */}
+        <div>
+          <button
+            onClick={() => setReportsOpen(!reportsOpen)}
+            className={cn(
+              'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+              'hover:scale-105',
+              pathname.startsWith('/reports')
+                ? 'bg-primary/10 text-primary shadow-sm'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+            )}
+            title={collapsed ? 'Relatórios' : undefined}
+          >
+            <FileText className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && (
+              <>
+                <span className="flex-1 text-left">Relatórios</span>
+                {reportsOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {/* Submenu */}
+          {reportsOpen && !collapsed && (
+            <div className="ml-4 mt-1 space-y-1 border-l-2 border-border pl-2">
+              {reportsSubmenu.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
+                      'hover:scale-105',
+                      isActive
+                        ? 'bg-primary/10 text-primary shadow-sm'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    )}
+                  >
+                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Configurações */}
+        <Link
+          href="/settings"
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+            'hover:scale-105',
+            pathname === '/settings'
+              ? 'bg-primary/10 text-primary shadow-sm'
+              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+          )}
+          title={collapsed ? 'Configurações' : undefined}
+        >
+          <Settings className="h-5 w-5 flex-shrink-0" />
+          {!collapsed && <span>Configurações</span>}
+        </Link>
       </nav>
 
       {/* Footer */}
