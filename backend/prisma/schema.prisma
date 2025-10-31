@@ -26,6 +26,8 @@ model Account {
   settings       Settings?
   billingPeriods BillingPeriod[]
   expenses       Expense[]
+  extraRevenues  ExtraRevenue[]
+  taxes          Tax[]
 }
 
 model AccountToken {
@@ -271,12 +273,70 @@ model Expense {
   
   // Informações da despesa
   name        String   // Ex: "Contador", "Aluguel"
-  category    String   // CONTADOR, EMBALAGEM, ALUGUEL, MARKETING, OUTROS
+  category    String   // CONTADOR, EMBALAGEM, ALUGUEL, MARKETING, FERRAMENTAS, OUTROS
   amount      Float    // Valor mensal
   description String?  // Descrição opcional
   
   // Recorrência
   isRecurring Boolean  @default(true) // Se é despesa recorrente
+  startDate   DateTime @default(now()) // Data de início
+  endDate     DateTime? // Data de fim (null = sem fim)
+  
+  // Status
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  @@index([accountId])
+  @@index([category])
+  @@index([isActive])
+}
+
+// Receitas Extras
+model ExtraRevenue {
+  id          String   @id @default(cuid())
+  accountId   String
+  
+  // Informações da receita
+  name        String   // Ex: "Consultoria", "Serviços"
+  category    String   // VENDA, CONSULTORIA, SERVICOS, COMISSAO, BONUS, OUTROS
+  amount      Float    // Valor mensal
+  description String?  // Descrição opcional
+  
+  // Recorrência
+  isRecurring Boolean  @default(true) // Se é receita recorrente
+  startDate   DateTime @default(now()) // Data de início
+  endDate     DateTime? // Data de fim (null = sem fim)
+  
+  // Status
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  @@index([accountId])
+  @@index([category])
+  @@index([isActive])
+}
+
+// Impostos e Taxas
+model Tax {
+  id          String   @id @default(cuid())
+  accountId   String
+  
+  // Informações do imposto/taxa
+  name        String   // Ex: "Simples Nacional", "Taxa ML"
+  category    String   // SIMPLES_NACIONAL, TAXA_ML, TAXA_MP, OUTROS
+  amount      Float    // Valor mensal
+  description String?  // Descrição opcional
+  
+  // Recorrência
+  isRecurring Boolean  @default(true) // Se é taxa recorrente
   startDate   DateTime @default(now()) // Data de início
   endDate     DateTime? // Data de fim (null = sem fim)
   

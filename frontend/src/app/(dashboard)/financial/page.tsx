@@ -4,12 +4,17 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useFinancialStats, useBillingPeriods, useSyncBilling, useProductProfitability, useCostBreakdown } from '@/hooks/useFinancial';
-import { useExpenses, useCreateExpense, useDeleteExpense, useExpensesSummary } from '@/hooks/useExpenses';
-import { DollarSign, TrendingUp, TrendingDown, Percent, RefreshCw, BarChart3, Filter, Download, Package, Plus, Trash2, Receipt } from 'lucide-react';
+import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpensesSummary } from '@/hooks/useExpenses';
+import { useExtraRevenues, useCreateExtraRevenue, useUpdateExtraRevenue, useDeleteExtraRevenue, useExtraRevenuesSummary } from '@/hooks/useExtraRevenues';
+import { useTaxes, useCreateTax, useUpdateTax, useDeleteTax, useTaxesSummary } from '@/hooks/useTaxes';
+import { DollarSign, TrendingUp, TrendingDown, Percent, RefreshCw, BarChart3, Filter, Download, Package, Plus, Trash2, Receipt, PlusCircle, FileText } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Input } from '@/components/ui/input';
+import { ExpensesModal } from '@/components/ExpensesModal';
+import { ExtraRevenuesModal } from '@/components/ExtraRevenuesModal';
+import { TaxesModal } from '@/components/TaxesModal';
 
 export default function FinancialPage() {
   const [accountId] = useState(() => {
@@ -25,14 +30,28 @@ export default function FinancialPage() {
   const { data: breakdown, isLoading: breakdownLoading } = useCostBreakdown(accountId);
   const { data: expenses } = useExpenses(accountId);
   const { data: expensesSummary } = useExpensesSummary(accountId);
+  const { data: extraRevenues } = useExtraRevenues(accountId);
+  const { data: revenuesSummary } = useExtraRevenuesSummary(accountId);
+  const { data: taxes } = useTaxes(accountId);
+  const { data: taxesSummary } = useTaxesSummary(accountId);
   const createExpense = useCreateExpense(accountId);
+  const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
+  const createRevenue = useCreateExtraRevenue(accountId);
+  const updateRevenue = useUpdateExtraRevenue();
+  const deleteRevenue = useDeleteExtraRevenue();
+  const createTax = useCreateTax(accountId);
+  const updateTax = useUpdateTax();
+  const deleteTax = useDeleteTax();
   const syncBilling = useSyncBilling(accountId);
 
   const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showChart, setShowChart] = useState(true);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [showRevenueModal, setShowRevenueModal] = useState(false);
+  const [showTaxModal, setShowTaxModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<any>(null);
   const [newExpense, setNewExpense] = useState({
     name: '',
     category: 'OUTROS',
@@ -118,6 +137,28 @@ export default function FinancialPage() {
     }
   };
 
+  const handleDeleteRevenue = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
+
+    try {
+      await deleteRevenue.mutateAsync(id);
+      toast.success('Receita excluída com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao excluir receita');
+    }
+  };
+
+  const handleDeleteTax = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este imposto/taxa?')) return;
+
+    try {
+      await deleteTax.mutateAsync(id);
+      toast.success('Imposto/Taxa excluído com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao excluir imposto/taxa');
+    }
+  };
+
   // Filtrar períodos por busca
   const filteredPeriods = stats?.periods?.filter(period => {
     if (!searchTerm) return true;
@@ -182,7 +223,7 @@ export default function FinancialPage() {
       )}
 
       {/* Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {/* Faturamento Bruto */}
         <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -206,21 +247,34 @@ export default function FinancialPage() {
         </Card>
 
         {/* Taxas e Impostos */}
-        <Card className="border-l-4 border-l-red-500">
+        <Card 
+          className="border-l-4 border-l-red-500 cursor-pointer transition-all hover:shadow-lg"
+          onClick={() => setShowTaxModal(true)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Taxas + Impostos</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-500" />
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-red-500" />
+              <Plus className="h-4 w-4 text-red-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            {statsLoading ? (
-              <div className="h-8 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+            {taxesSummary ? (
+              <>
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                  -{formatCurrency(taxesSummary.total || 0)}
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {taxesSummary.summary?.length || 0} impostos/taxas cadastrados
+                </p>
+              </>
             ) : (
               <>
                 <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  -{formatCurrency((stats?.totalFees || 0) + (stats?.totalTaxes || 0))}
+                  R$ 0,00
                 </div>
                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Taxas: {formatCurrency(stats?.totalFees || 0)} | Impostos: {formatCurrency(stats?.totalTaxes || 0)}
+                  Clique para adicionar impostos/taxas
                 </p>
               </>
             )}
@@ -272,10 +326,16 @@ export default function FinancialPage() {
         </Card>
 
         {/* Despesas Fixas */}
-        <Card className="border-l-4 border-l-orange-500">
+        <Card 
+          className="border-l-4 border-l-orange-500 cursor-pointer transition-all hover:shadow-lg"
+          onClick={() => setShowExpenseModal(true)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Despesas Fixas</CardTitle>
-            <Receipt className="h-4 w-4 text-orange-500" />
+            <div className="flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-orange-500" />
+              <Plus className="h-4 w-4 text-orange-500" />
+            </div>
           </CardHeader>
           <CardContent>
             {expensesSummary ? (
@@ -293,7 +353,42 @@ export default function FinancialPage() {
                   R$ 0,00
                 </div>
                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Nenhuma despesa cadastrada
+                  Clique para adicionar despesas
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Receitas Extras */}
+        <Card 
+          className="border-l-4 border-l-emerald-500 cursor-pointer transition-all hover:shadow-lg"
+          onClick={() => setShowRevenueModal(true)}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receitas Extras</CardTitle>
+            <div className="flex items-center gap-2">
+              <PlusCircle className="h-4 w-4 text-emerald-500" />
+              <Plus className="h-4 w-4 text-emerald-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {revenuesSummary ? (
+              <>
+                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  +{formatCurrency(revenuesSummary.total || 0)}
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {revenuesSummary.summary?.length || 0} receitas cadastradas
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  R$ 0,00
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Clique para adicionar receitas
                 </p>
               </>
             )}
@@ -545,113 +640,41 @@ export default function FinancialPage() {
         )}
       </div>
 
-      {/* Despesas Fixas */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5" />
-            Despesas Fixas Mensais
-          </CardTitle>
-          <Button onClick={() => setShowExpenseModal(true)} size="sm">
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Despesa
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {expenses && expenses.length > 0 ? (
-            <div className="space-y-2">
-              {expenses.map((expense: any) => (
-                <div key={expense.id} className="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">{expense.name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{expense.category}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-red-600 dark:text-red-400">{formatCurrency(expense.amount)}</span>
-                    <Button variant="ghost" size="sm" onClick={() => handleDeleteExpense(expense.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <div className="mt-4 border-t border-gray-200 pt-3 dark:border-gray-700">
-                <div className="flex justify-between text-lg font-bold">
-                  <span className="text-gray-900 dark:text-white">Total Mensal:</span>
-                  <span className="text-red-600 dark:text-red-400">{formatCurrency(expensesSummary?.total || 0)}</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p className="py-8 text-center text-gray-500 dark:text-gray-400">
-              Nenhuma despesa cadastrada. Clique em "Nova Despesa" para começar.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      {/* Modal de Despesas */}
+      <ExpensesModal
+        isOpen={showExpenseModal}
+        onClose={() => setShowExpenseModal(false)}
+        expenses={expenses || []}
+        expensesSummary={expensesSummary}
+        onCreateExpense={async (data) => await createExpense.mutateAsync(data)}
+        onUpdateExpense={async (id, data) => await updateExpense.mutateAsync({ id, data })}
+        onDeleteExpense={handleDeleteExpense}
+        isCreating={createExpense.isPending}
+      />
 
-      {/* Modal Criar Despesa */}
-      {showExpenseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowExpenseModal(false)}>
-          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <CardHeader>
-              <CardTitle>Nova Despesa Fixa</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-900 dark:text-white">Nome *</label>
-                <Input
-                  value={newExpense.name}
-                  onChange={(e) => setNewExpense({...newExpense, name: e.target.value})}
-                  placeholder="Ex: Contador"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-900 dark:text-white">Categoria *</label>
-                <select
-                  className="mt-1 w-full rounded-md border border-gray-300 p-2 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  value={newExpense.category}
-                  onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}
-                >
-                  <option value="CONTADOR">Contador</option>
-                  <option value="EMBALAGEM">Embalagens</option>
-                  <option value="ALUGUEL">Aluguel</option>
-                  <option value="MARKETING">Marketing</option>
-                  <option value="OUTROS">Outros</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-900 dark:text-white">Valor Mensal (R$) *</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={newExpense.amount}
-                  onChange={(e) => setNewExpense({...newExpense, amount: parseFloat(e.target.value) || 0})}
-                  placeholder="0.00"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-900 dark:text-white">Descrição (opcional)</label>
-                <Input
-                  value={newExpense.description}
-                  onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
-                  placeholder="Detalhes adicionais"
-                  className="mt-1"
-                />
-              </div>
-              <div className="flex gap-2 pt-2">
-                <Button onClick={handleCreateExpense} className="flex-1" disabled={createExpense.isPending}>
-                  {createExpense.isPending ? 'Criando...' : 'Criar Despesa'}
-                </Button>
-                <Button variant="outline" onClick={() => setShowExpenseModal(false)} className="flex-1">
-                  Cancelar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Modal de Receitas Extras */}
+      <ExtraRevenuesModal
+        isOpen={showRevenueModal}
+        onClose={() => setShowRevenueModal(false)}
+        revenues={extraRevenues || []}
+        revenuesSummary={revenuesSummary}
+        onCreateRevenue={async (data) => await createRevenue.mutateAsync(data)}
+        onUpdateRevenue={async (id, data) => await updateRevenue.mutateAsync({ id, data })}
+        onDeleteRevenue={handleDeleteRevenue}
+        isCreating={createRevenue.isPending}
+      />
+
+      {/* Modal de Impostos e Taxas */}
+      <TaxesModal
+        isOpen={showTaxModal}
+        onClose={() => setShowTaxModal(false)}
+        taxes={taxes || []}
+        taxesSummary={taxesSummary}
+        onCreateTax={async (data) => await createTax.mutateAsync(data)}
+        onUpdateTax={async (id, data) => await updateTax.mutateAsync({ id, data })}
+        onDeleteTax={handleDeleteTax}
+        isCreating={createTax.isPending}
+      />
     </div>
   );
 }

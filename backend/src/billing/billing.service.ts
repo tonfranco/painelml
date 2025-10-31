@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MeliService } from '../meli/meli.service';
 import { ExpensesService } from '../expenses/expenses.service';
+import { TaxesService } from '../taxes/taxes.service';
 
 @Injectable()
 export class BillingService {
@@ -11,6 +12,7 @@ export class BillingService {
     private prisma: PrismaService,
     private meliService: MeliService,
     private expensesService: ExpensesService,
+    private taxesService: TaxesService,
   ) {}
 
   /**
@@ -295,14 +297,12 @@ export class BillingService {
 
     const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
     
-    // Estimativa de taxas ML (aproximadamente 12-16% dependendo da categoria)
-    const estimatedFees = totalRevenue * 0.14; // 14% médio
+    // Sem estimativas - usar apenas valores reais
+    const totalFees = 0;
+    const totalTaxes = 0;
     
-    // Estimativa de impostos (aproximadamente 6-8%)
-    const estimatedTaxes = totalRevenue * 0.07; // 7% médio
-    
-    const totalNet = totalRevenue - estimatedFees - estimatedTaxes;
-    const profitMargin = totalRevenue > 0 ? (totalNet / totalRevenue) * 100 : 0;
+    const totalNet = totalRevenue;
+    const profitMargin = 100;
 
     // Agrupar por mês
     const periodMap = new Map<string, { total: number; count: number }>();
@@ -320,22 +320,22 @@ export class BillingService {
       .map(([key, data]) => ({
         periodKey: key,
         totalAmount: data.total,
-        netAmount: data.total * 0.79, // 79% após taxas e impostos
+        netAmount: data.total, // Valor bruto sem descontos
         orderCount: data.count,
       }))
       .sort((a, b) => b.periodKey.localeCompare(a.periodKey));
 
     return {
       totalRevenue,
-      totalFees: estimatedFees,
-      totalTaxes: estimatedTaxes,
+      totalFees,
+      totalTaxes,
       totalNet,
       avgRevenue: totalRevenue / Math.max(periods.length, 1),
       avgNet: totalNet / Math.max(periods.length, 1),
       profitMargin,
       periodsCount: periods.length,
       periods,
-      note: 'Calculado baseado em pedidos (API de billing indisponível). Taxas e impostos são estimativas.',
+      note: 'Calculado baseado em pedidos. Sincronize os períodos de billing do ML para dados mais precisos.',
     };
   }
 
@@ -425,18 +425,26 @@ export class BillingService {
     const expensesSummary = await this.expensesService.getSummaryByCategory(accountId);
     const totalExpenses = expensesSummary.reduce((sum: number, item: any) => sum + item.total, 0);
     
-    // Calcular lucro real (após despesas fixas)
-    const realProfit = stats.totalNet - totalExpenses;
+    // Buscar impostos/taxas cadastrados
+    const taxesSummary = await this.taxesService.getSummaryByCategory(accountId);
+    const totalCustomTaxes = taxesSummary.reduce((sum: number, item: any) => sum + item.total, 0);
+    
+    // Total de impostos = impostos do ML + impostos cadastrados
+    const totalTaxesAndFees = stats.totalFees + stats.totalTaxes + totalCustomTaxes;
+    
+    // Calcular lucro real (após despesas fixas e impostos cadastrados)
+    const realProfit = stats.totalNet - totalExpenses - totalCustomTaxes;
 
     return {
       breakdown: [
         { name: 'Lucro Real', value: realProfit > 0 ? realProfit : 0, color: '#10b981' },
         { name: 'Despesas Fixas', value: totalExpenses, color: '#8b5cf6' },
-        { name: 'Taxas ML/MP', value: stats.totalFees, color: '#f59e0b' },
-        { name: 'Impostos', value: stats.totalTaxes, color: '#ef4444' },
+        { name: 'Taxas + Impostos', value: totalTaxesAndFees, color: '#ef4444' },
       ],
       total: stats.totalRevenue,
       totalExpenses,
+      totalTaxes: totalTaxesAndFees,
+      totalCustomTaxes,
       realProfit,
     };
   }

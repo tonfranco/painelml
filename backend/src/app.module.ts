@@ -14,6 +14,8 @@ import { WorkersModule } from './workers/workers.module';
 import { SettingsModule } from './settings/settings.module';
 import { BillingModule } from './billing/billing.module';
 import { ExpensesModule } from './expenses/expenses.module';
+import { ExtraRevenuesModule } from './extra-revenues/extra-revenues.module';
+import { TaxesModule } from './taxes/taxes.module';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { ExpensesModule } from './expenses/expenses.module';
     SettingsModule,
     BillingModule,
     ExpensesModule,
+    ExtraRevenuesModule,
+    TaxesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
