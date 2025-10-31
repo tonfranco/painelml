@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Edit,
   Bus,
-  DollarSign
+  DollarSign,
+  TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from './theme-toggle';
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Envios', href: '/pending-shipments', icon: Bus },
   { name: 'Perguntas', href: '/questions', icon: MessageCircle },
   { name: 'Financeiro', href: '/financial', icon: DollarSign },
+  { name: 'Fluxo de Caixa', href: '/cash-flow', icon: TrendingUp },
   { name: 'Configurações', href: '/settings', icon: Settings },
 ];
 

@@ -126,4 +126,49 @@ export class BillingController {
       return { error: error.message };
     }
   }
+
+  @Get('cash-flow/forecast')
+  async getCashFlowForecast(@Query('accountId') accountId: string) {
+    if (!accountId) {
+      return { error: 'accountId is required' };
+    }
+
+    try {
+      const result = await this.billingService.getCashFlowForecast(accountId);
+      return result;
+    } catch (error) {
+      this.logger.error(`Error fetching cash flow forecast: ${error.message}`);
+      return { error: error.message };
+    }
+  }
+
+  @Get('reconciliation')
+  async getBankReconciliation(@Query('accountId') accountId: string) {
+    if (!accountId) {
+      return { error: 'accountId is required' };
+    }
+
+    try {
+      const result = await this.billingService.getBankReconciliation(accountId);
+      return result;
+    } catch (error) {
+      this.logger.error(`Error fetching bank reconciliation: ${error.message}`);
+      return { error: error.message };
+    }
+  }
+
+  @Get('alerts/divergence')
+  async getDivergenceAlerts(@Query('accountId') accountId: string) {
+    if (!accountId) {
+      return { error: 'accountId is required' };
+    }
+
+    try {
+      const result = await this.billingService.getDivergenceAlerts(accountId);
+      return result;
+    } catch (error) {
+      this.logger.error(`Error fetching divergence alerts: ${error.message}`);
+      return { error: error.message };
+    }
+  }
 }

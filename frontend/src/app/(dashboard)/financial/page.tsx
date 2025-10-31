@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useFinancialStats, useBillingPeriods, useSyncBilling, useProductProfitability, useCostBreakdown } from '@/hooks/useFinancial';
 import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense, useExpensesSummary } from '@/hooks/useExpenses';
 import { useExtraRevenues, useCreateExtraRevenue, useUpdateExtraRevenue, useDeleteExtraRevenue, useExtraRevenuesSummary } from '@/hooks/useExtraRevenues';
 import { useTaxes, useCreateTax, useUpdateTax, useDeleteTax, useTaxesSummary } from '@/hooks/useTaxes';
-import { DollarSign, TrendingUp, TrendingDown, Percent, RefreshCw, BarChart3, Filter, Download, Package, Plus, Trash2, Receipt, PlusCircle, FileText } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Percent, RefreshCw, BarChart3, Filter, Download, Package, Plus, Trash2, Receipt, PlusCircle, FileText, FileSpreadsheet, FileDown } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { exportFinancialReport } from '@/lib/exportService';
 import toast from 'react-hot-toast';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Input } from '@/components/ui/input';
@@ -17,12 +18,13 @@ import { ExtraRevenuesModal } from '@/components/ExtraRevenuesModal';
 import { TaxesModal } from '@/components/TaxesModal';
 
 export default function FinancialPage() {
-  const [accountId] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('accountId');
-    }
-    return null;
-  });
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setAccountId(localStorage.getItem('accountId'));
+  }, []);
 
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useFinancialStats(accountId);
   const { data: periodsData, isLoading: periodsLoading, refetch: refetchPeriods } = useBillingPeriods(accountId);
@@ -64,7 +66,16 @@ export default function FinancialPage() {
     try {
       const result = await syncBilling();
       if (result.success) {
-        toast.success(`Sincronizado: ${result.synced} de ${result.total} períodos`);
+        if (result.message && result.message.includes('não disponível')) {
+          // API de billing não disponível - mostrar aviso informativo
+          toast.success(
+            'Dados financeiros atualizados com base nos pedidos. ' +
+            'A API de billing do ML não está disponível para sua conta.',
+            { duration: 5000 }
+          );
+        } else {
+          toast.success(`Sincronizado: ${result.synced} de ${result.total} períodos`);
+        }
         refetchStats();
         refetchPeriods();
       } else {
@@ -159,6 +170,27 @@ export default function FinancialPage() {
     }
   };
 
+  const handleExport = (format: 'excel' | 'csv' | 'pdf') => {
+    if (!stats || !periodsData) {
+      toast.error('Aguarde o carregamento dos dados');
+      return;
+    }
+
+    try {
+      exportFinancialReport(
+        stats,
+        stats.periods || [],
+        expenses || [],
+        taxes || [],
+        format
+      );
+      toast.success(`Relatório exportado em ${format.toUpperCase()}!`);
+    } catch (error) {
+      toast.error('Erro ao exportar relatório');
+      console.error(error);
+    }
+  };
+
   // Filtrar períodos por busca
   const filteredPeriods = stats?.periods?.filter(period => {
     if (!searchTerm) return true;
@@ -172,6 +204,15 @@ export default function FinancialPage() {
     'Faturamento Bruto': period.totalAmount,
     'Faturamento Líquido': period.netAmount,
   })) || [];
+
+  // Evitar hydration mismatch - aguardar montagem do componente
+  if (!mounted) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-500" />
+      </div>
+    );
+  }
 
   if (!accountId) {
     return (
@@ -196,16 +237,36 @@ export default function FinancialPage() {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={handleExportCSV}
+            onClick={() => handleExport('excel')}
             disabled={!stats?.periods || stats.periods.length === 0}
+            size="sm"
+          >
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            Excel
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleExport('csv')}
+            disabled={!stats?.periods || stats.periods.length === 0}
+            size="sm"
+          >
+            <FileDown className="mr-2 h-4 w-4" />
+            CSV
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleExport('pdf')}
+            disabled={!stats?.periods || stats.periods.length === 0}
+            size="sm"
           >
             <Download className="mr-2 h-4 w-4" />
-            Exportar CSV
+            PDF
           </Button>
           <Button
             variant="outline"
             onClick={handleSync}
             disabled={syncing}
+            size="sm"
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Sincronizando...' : 'Sincronizar'}
@@ -413,19 +474,23 @@ export default function FinancialPage() {
           {showChart && (
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                {/* @ts-ignore - Recharts types issue */}
+                {/* @ts-expect-error - Recharts types incompatibility with React 18+ */}
                 <LineChart data={chartData}>
+                  {/* @ts-expect-error */}
                   <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+                  {/* @ts-expect-error */}
                   <XAxis 
                     dataKey="name" 
                     className="text-xs"
                     tick={{ fill: 'currentColor' }}
                   />
+                  {/* @ts-expect-error */}
                   <YAxis 
                     className="text-xs"
                     tick={{ fill: 'currentColor' }}
                     tickFormatter={(value: any) => `R$ ${(value / 1000).toFixed(1)}k`}
                   />
+                  {/* @ts-expect-error */}
                   <Tooltip 
                     formatter={(value: number) => formatCurrency(value)}
                     contentStyle={{ 
@@ -434,7 +499,9 @@ export default function FinancialPage() {
                       borderRadius: '6px'
                     }}
                   />
+                  {/* @ts-expect-error */}
                   <Legend />
+                  {/* @ts-expect-error */}
                   <Line 
                     type="monotone" 
                     dataKey="Faturamento Bruto" 
@@ -442,6 +509,7 @@ export default function FinancialPage() {
                     strokeWidth={2}
                     dot={{ fill: '#3b82f6', r: 4 }}
                   />
+                  {/* @ts-expect-error */}
                   <Line 
                     type="monotone" 
                     dataKey="Faturamento Líquido" 
@@ -562,8 +630,9 @@ export default function FinancialPage() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={250}>
-                  {/* @ts-ignore - Recharts types issue */}
+                  {/* @ts-expect-error - Recharts types incompatibility with React 18+ */}
                   <PieChart>
+                    {/* @ts-expect-error */}
                     <Pie
                       data={breakdown.breakdown}
                       cx="50%"
@@ -578,6 +647,7 @@ export default function FinancialPage() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
+                    {/* @ts-expect-error */}
                     <Tooltip formatter={(value: number) => formatCurrency(value)} />
                   </PieChart>
                 </ResponsiveContainer>

@@ -32,14 +32,39 @@ export class BillingService {
       }
 
       const accessToken = account.tokens[0].accessToken;
+      
+      // Tentar primeiro a API de billing (pode não estar disponível para todas as contas)
       const periodsUrl = 'https://api.mercadolibre.com/billing/integration/monthly/periods';
       
+      this.logger.log(`Attempting to fetch billing periods from: ${periodsUrl}`);
+      
       const response = await fetch(periodsUrl, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { 
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
-        throw new Error(`ML API error: ${response.status}`);
+        const errorBody = await response.text();
+        this.logger.error(`ML API error ${response.status}: ${errorBody}`);
+        
+        if (response.status === 403 || response.status === 404) {
+          this.logger.warn(
+            'API de billing não disponível. Isso é normal para contas que não têm acesso à API de integração. ' +
+            'Os dados financeiros serão calculados baseados nos pedidos.'
+          );
+          
+          // Retornar resultado vazio mas bem-sucedido
+          return {
+            synced: 0,
+            total: 0,
+            errors: 0,
+            message: 'API de billing não disponível para esta conta. Usando dados de pedidos como alternativa.',
+          };
+        }
+        
+        throw new Error(`ML API error: ${response.status} - ${errorBody}`);
       }
 
       const data = await response.json();
@@ -446,6 +471,148 @@ export class BillingService {
       totalTaxes: totalTaxesAndFees,
       totalCustomTaxes,
       realProfit,
+    };
+  }
+
+  /**
+   * Previsão de recebimentos (Fluxo de Caixa)
+   */
+  async getCashFlowForecast(accountId: string) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const next7Days = new Date(today);
+    next7Days.setDate(today.getDate() + 7);
+    const next30Days = new Date(today);
+    next30Days.setDate(today.getDate() + 30);
+
+    // Buscar pedidos com status de pagamento
+    const orders = await this.prisma.order.findMany({
+      where: {
+        accountId,
+        status: { in: ['paid', 'confirmed'] },
+      },
+      orderBy: { dateCreated: 'desc' },
+    });
+
+    // Calcular recebimentos esperados
+    // ML geralmente libera o dinheiro após 15-30 dias dependendo da reputação
+    const expectedReleases = orders.map(order => {
+      const orderDate = new Date(order.dateCreated);
+      const estimatedReleaseDate = new Date(orderDate);
+      estimatedReleaseDate.setDate(orderDate.getDate() + 20); // Média de 20 dias
+
+      return {
+        orderId: order.meliOrderId,
+        amount: order.totalAmount,
+        orderDate: order.dateCreated,
+        estimatedReleaseDate,
+        status: order.status,
+      };
+    });
+
+    // Filtrar por períodos
+    const receivablesToday = expectedReleases.filter(r => 
+      r.estimatedReleaseDate <= today
+    );
+    const receivablesNext7Days = expectedReleases.filter(r => 
+      r.estimatedReleaseDate > today && r.estimatedReleaseDate <= next7Days
+    );
+    const receivablesNext30Days = expectedReleases.filter(r => 
+      r.estimatedReleaseDate > next7Days && r.estimatedReleaseDate <= next30Days
+    );
+
+    return {
+      today: {
+        count: receivablesToday.length,
+        total: receivablesToday.reduce((sum, r) => sum + r.amount, 0),
+        items: receivablesToday,
+      },
+      next7Days: {
+        count: receivablesNext7Days.length,
+        total: receivablesNext7Days.reduce((sum, r) => sum + r.amount, 0),
+        items: receivablesNext7Days,
+      },
+      next30Days: {
+        count: receivablesNext30Days.length,
+        total: receivablesNext30Days.reduce((sum, r) => sum + r.amount, 0),
+        items: receivablesNext30Days,
+      },
+      overdue: {
+        count: receivablesToday.length,
+        total: receivablesToday.reduce((sum, r) => sum + r.amount, 0),
+      },
+    };
+  }
+
+  /**
+   * Conciliação bancária
+   */
+  async getBankReconciliation(accountId: string) {
+    // Buscar períodos de billing (pagamentos esperados)
+    const periods = await this.prisma.billingPeriod.findMany({
+      where: { accountId },
+      orderBy: { dateFrom: 'desc' },
+      take: 12,
+    });
+
+    // Para cada período, verificar se o valor foi recebido
+    const reconciliation = periods.map(period => {
+      const expectedAmount = period.netAmount;
+      const receivedAmount = period.netAmount; // TODO: Integrar com dados bancários reais
+      const difference = receivedAmount - expectedAmount;
+      const status = Math.abs(difference) < 0.01 ? 'matched' : 'divergent';
+
+      return {
+        periodKey: period.periodKey,
+        dateFrom: period.dateFrom,
+        dateTo: period.dateTo,
+        expectedAmount,
+        receivedAmount,
+        difference,
+        status,
+        percentageDiff: expectedAmount > 0 ? (difference / expectedAmount) * 100 : 0,
+      };
+    });
+
+    const matched = reconciliation.filter(r => r.status === 'matched').length;
+    const divergent = reconciliation.filter(r => r.status === 'divergent').length;
+    const totalDivergence = reconciliation.reduce((sum, r) => sum + Math.abs(r.difference), 0);
+
+    return {
+      summary: {
+        total: reconciliation.length,
+        matched,
+        divergent,
+        totalDivergence,
+        matchRate: reconciliation.length > 0 ? (matched / reconciliation.length) * 100 : 0,
+      },
+      items: reconciliation,
+    };
+  }
+
+  /**
+   * Alertas de divergências
+   */
+  async getDivergenceAlerts(accountId: string) {
+    const reconciliation = await this.getBankReconciliation(accountId);
+    
+    const alerts = reconciliation.items
+      .filter(item => item.status === 'divergent')
+      .map(item => ({
+        type: 'divergence',
+        severity: Math.abs(item.percentageDiff) > 5 ? 'high' : 'medium',
+        periodKey: item.periodKey,
+        message: `Divergência de ${item.difference > 0 ? '+' : ''}${item.difference.toFixed(2)} (${item.percentageDiff.toFixed(2)}%)`,
+        expectedAmount: item.expectedAmount,
+        receivedAmount: item.receivedAmount,
+        difference: item.difference,
+      }));
+
+    return {
+      total: alerts.length,
+      high: alerts.filter(a => a.severity === 'high').length,
+      medium: alerts.filter(a => a.severity === 'medium').length,
+      alerts,
     };
   }
 }

@@ -39,6 +39,8 @@ export class MeliService {
     // PKCE parameters (se suportado)
     url.searchParams.set('code_challenge', challenge);
     url.searchParams.set('code_challenge_method', 'S256');
+    // Escopos necessários para acessar dados de billing, pedidos, produtos, etc.
+    url.searchParams.set('scope', 'offline_access read write');
 
     return { url: url.toString(), state };
   }
