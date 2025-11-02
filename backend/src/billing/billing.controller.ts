@@ -171,4 +171,83 @@ export class BillingController {
       return { error: error.message };
     }
   }
+
+  @Get('payments/:periodKey')
+  async getPaymentDetails(
+    @Param('periodKey') periodKey: string,
+    @Query('accountId') accountId: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('sortBy') sortBy?: 'ID' | 'DATE',
+    @Query('orderBy') orderBy?: 'ASC' | 'DESC',
+  ) {
+    if (!accountId) {
+      return { error: 'accountId is required' };
+    }
+
+    try {
+      const result = await this.billingService.getPaymentDetails(accountId, periodKey, {
+        limit: limit ? parseInt(limit) : undefined,
+        offset: offset ? parseInt(offset) : undefined,
+        sortBy,
+        orderBy,
+      });
+      return result;
+    } catch (error) {
+      this.logger.error(`Error fetching payment details: ${error.message}`);
+      return { error: error.message };
+    }
+  }
+
+  @Get('payment/:paymentId/charges')
+  async getPaymentCharges(
+    @Param('paymentId') paymentId: string,
+    @Query('accountId') accountId: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('sortBy') sortBy?: 'ID' | 'DATE',
+    @Query('orderBy') orderBy?: 'ASC' | 'DESC',
+  ) {
+    if (!accountId) {
+      return { error: 'accountId is required' };
+    }
+
+    try {
+      const result = await this.billingService.getPaymentCharges(accountId, paymentId, {
+        limit: limit ? parseInt(limit) : undefined,
+        offset: offset ? parseInt(offset) : undefined,
+        sortBy,
+        orderBy,
+      });
+      return result;
+    } catch (error) {
+      this.logger.error(`Error fetching payment charges: ${error.message}`);
+      return { error: error.message };
+    }
+  }
+
+  @Post('payments/sync')
+  async syncPaymentDetails(
+    @Query('accountId') accountId: string,
+    @Query('periodKey') periodKey: string,
+  ) {
+    if (!accountId || !periodKey) {
+      return { error: 'accountId and periodKey are required' };
+    }
+
+    try {
+      const result = await this.billingService.syncPaymentDetails(accountId, periodKey);
+      return {
+        success: true,
+        message: `Synced ${result.synced} of ${result.total} payments`,
+        ...result,
+      };
+    } catch (error) {
+      this.logger.error(`Error syncing payment details: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }

@@ -65,9 +65,15 @@ export class ExpensesController {
     }
 
     try {
-      const summary = await this.expensesService.getSummaryByCategory(accountId);
-      const total = summary.reduce((sum, item) => sum + item.total, 0);
-      return { summary, total };
+      const expenses = await this.expensesService.findAll(accountId, false);
+      const totalMonthly = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const totalExpenses = expenses.length;
+      
+      return { 
+        totalMonthly, 
+        totalExpenses,
+        expenses 
+      };
     } catch (error) {
       this.logger.error(`Error fetching summary: ${error.message}`);
       return { error: error.message };

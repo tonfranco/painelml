@@ -225,6 +225,7 @@ model BillingPeriod {
   
   account           Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
   charges           BillingCharge[]
+  payments          BillingPayment[]
   
   @@unique([accountId, periodKey])
   @@index([accountId])
@@ -264,6 +265,47 @@ model BillingCharge {
   @@index([accountId])
   @@index([chargeType])
   @@index([chargeDate])
+}
+
+// Pagamentos de Billing
+model BillingPayment {
+  id                        String   @id @default(cuid())
+  periodId                  String
+  accountId                 String
+  
+  // Identificação do pagamento
+  paymentId                 String   // ID do pagamento no ML
+  creditNoteNumber          String?  // Número da nota de crédito
+  
+  // Informações do pagamento
+  paymentDate               DateTime
+  paymentType               String   // collections_forced, manual, etc
+  paymentTypeDescription    String?
+  paymentMethod             String   // account_money, credit_card, etc
+  paymentMethodDescription  String?
+  paymentStatus             String   // approved, pending, rejected
+  paymentStatusDescription  String?
+  
+  // Valores
+  paymentAmount             Float    @default(0) // Valor total do pagamento
+  amountInThisPeriod        Float    @default(0) // Valor aplicado neste período
+  amountInOtherPeriod       Float    @default(0) // Valor aplicado em outro período
+  remainingAmount           Float    @default(0) // Saldo a favor para próximas notas
+  returnAmount              Float    @default(0) // Saldo a favor que o vendedor possui
+  
+  // Metadados
+  rawData                   Json?    // Dados brutos da API ML
+  
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  
+  period                    BillingPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  
+  @@unique([periodId, paymentId])
+  @@index([accountId])
+  @@index([paymentId])
+  @@index([paymentDate])
+  @@index([paymentStatus])
 }
 
 // Despesas Fixas

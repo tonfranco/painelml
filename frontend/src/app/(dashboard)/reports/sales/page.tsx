@@ -55,7 +55,7 @@ export default function SalesReportPage() {
       
       // Calcular estatísticas
       const totalOrders = orders.length;
-      const totalRevenue = orders.reduce((sum: number, order: any) => sum + order.totalAmount, 0);
+      const totalRevenue = orders.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0);
       const averageTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
       
       // Agrupar por status
@@ -71,20 +71,25 @@ export default function SalesReportPage() {
           acc[date] = { date, count: 0, revenue: 0 };
         }
         acc[date].count++;
-        acc[date].revenue += order.totalAmount;
+        acc[date].revenue += order.totalAmount || 0;
         return acc;
       }, {});
       
-      // Top produtos
+      // Top produtos (baseado em itemTitle do pedido)
       const productSales: any = {};
       orders.forEach((order: any) => {
-        order.items?.forEach((item: any) => {
-          if (!productSales[item.title]) {
-            productSales[item.title] = { title: item.title, quantity: 0, revenue: 0 };
+        if (order.itemTitle) {
+          if (!productSales[order.itemTitle]) {
+            productSales[order.itemTitle] = { 
+              title: order.itemTitle, 
+              quantity: 0, 
+              revenue: 0,
+              itemId: order.itemId 
+            };
           }
-          productSales[item.title].quantity += item.quantity;
-          productSales[item.title].revenue += item.unitPrice * item.quantity;
-        });
+          productSales[order.itemTitle].quantity += 1; // Cada pedido = 1 item
+          productSales[order.itemTitle].revenue += order.totalAmount || 0;
+        }
       });
       
       const topProducts = Object.values(productSales)
@@ -281,11 +286,9 @@ export default function SalesReportPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {salesData.orders.reduce((sum: number, order: any) => 
-                    sum + (order.items?.reduce((s: number, item: any) => s + item.quantity, 0) || 0), 0
-                  )}
+                  {salesData.orders.length}
                 </div>
-                <p className="text-xs text-muted-foreground">unidades</p>
+                <p className="text-xs text-muted-foreground">pedidos</p>
               </CardContent>
             </Card>
           </div>
@@ -297,17 +300,21 @@ export default function SalesReportPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {salesData.topProducts.map((product: any, index: number) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium">{product.title}</p>
-                      <p className="text-sm text-muted-foreground">{product.quantity} unidades</p>
+                {salesData.topProducts.length > 0 ? (
+                  salesData.topProducts.map((product: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium">{product.title}</p>
+                        <p className="text-sm text-muted-foreground">{product.quantity} pedidos</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">{formatCurrency(product.revenue)}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold">{formatCurrency(product.revenue)}</p>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground">Nenhum produto encontrado</p>
+                )}
               </div>
             </CardContent>
           </Card>

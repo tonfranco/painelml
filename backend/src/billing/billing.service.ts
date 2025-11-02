@@ -615,4 +615,230 @@ export class BillingService {
       alerts,
     };
   }
+
+  /**
+   * Busca detalhes de pagamentos de um período específico
+   */
+  async getPaymentDetails(accountId: string, periodKey: string, options?: {
+    limit?: number;
+    offset?: number;
+    sortBy?: 'ID' | 'DATE';
+    orderBy?: 'ASC' | 'DESC';
+  }) {
+    try {
+      const { limit = 150, offset = 0, sortBy = 'ID', orderBy = 'ASC' } = options || {};
+
+      const account = await this.prisma.account.findUnique({
+        where: { id: accountId },
+        include: { tokens: { orderBy: { obtainedAt: 'desc' }, take: 1 } },
+      });
+
+      if (!account || !account.tokens[0]) {
+        throw new Error('Account or token not found');
+      }
+
+      const accessToken = account.tokens[0].accessToken;
+      
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        offset: offset.toString(),
+        sort_by: sortBy,
+        order_by: orderBy,
+      });
+
+      const url = `https://api.mercadolibre.com/billing/integration/periods/key/${periodKey}/group/ML/payment/details?${params}`;
+      
+      this.logger.log(`Fetching payment details from: ${url}`);
+      
+      const response = await fetch(url, {
+        headers: { 
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        this.logger.error(`ML API error ${response.status}: ${errorBody}`);
+        
+        if (response.status === 403 || response.status === 404) {
+          return {
+            payments: [],
+            total: 0,
+            message: 'API de pagamentos não disponível para esta conta.',
+          };
+        }
+        
+        throw new Error(`ML API error: ${response.status} - ${errorBody}`);
+      }
+
+      const data = await response.json();
+      
+      return {
+        payments: data.payment_info || [],
+        total: data.paging?.total || 0,
+        limit: data.paging?.limit || limit,
+        offset: data.paging?.offset || offset,
+      };
+    } catch (error) {
+      this.logger.error(`Error fetching payment details: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca charges (cobranças) de um pagamento específico
+   */
+  async getPaymentCharges(accountId: string, paymentId: string, options?: {
+    limit?: number;
+    offset?: number;
+    sortBy?: 'ID' | 'DATE';
+    orderBy?: 'ASC' | 'DESC';
+  }) {
+    try {
+      const { limit = 150, offset = 0, sortBy = 'ID', orderBy = 'ASC' } = options || {};
+
+      const account = await this.prisma.account.findUnique({
+        where: { id: accountId },
+        include: { tokens: { orderBy: { obtainedAt: 'desc' }, take: 1 } },
+      });
+
+      if (!account || !account.tokens[0]) {
+        throw new Error('Account or token not found');
+      }
+
+      const accessToken = account.tokens[0].accessToken;
+      
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        offset: offset.toString(),
+        sort_by: sortBy,
+        order_by: orderBy,
+      });
+
+      const url = `https://api.mercadolibre.com/billing/integration/payment/${paymentId}/charges?${params}`;
+      
+      this.logger.log(`Fetching payment charges from: ${url}`);
+      
+      const response = await fetch(url, {
+        headers: { 
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        this.logger.error(`ML API error ${response.status}: ${errorBody}`);
+        
+        if (response.status === 403 || response.status === 404) {
+          return {
+            charges: [],
+            message: 'API de charges não disponível para este pagamento.',
+          };
+        }
+        
+        throw new Error(`ML API error: ${response.status} - ${errorBody}`);
+      }
+
+      const data = await response.json();
+      
+      return {
+        charges: data.payment_details || [],
+        total: data.payment_details?.length || 0,
+      };
+    } catch (error) {
+      this.logger.error(`Error fetching payment charges: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Salva detalhes de pagamentos no banco de dados
+   */
+  async syncPaymentDetails(accountId: string, periodKey: string) {
+    try {
+      this.logger.log(`Syncing payment details for period ${periodKey}`);
+
+      const paymentDetails = await this.getPaymentDetails(accountId, periodKey, { limit: 1000 });
+      
+      if (!paymentDetails.payments || paymentDetails.payments.length === 0) {
+        return {
+          synced: 0,
+          message: 'Nenhum pagamento encontrado para este período.',
+        };
+      }
+
+      // Buscar o período no banco
+      const period = await this.prisma.billingPeriod.findFirst({
+        where: { accountId, periodKey },
+      });
+
+      if (!period) {
+        throw new Error(`Period ${periodKey} not found in database`);
+      }
+
+      let syncedCount = 0;
+
+      for (const payment of paymentDetails.payments) {
+        try {
+          await this.prisma.billingPayment.upsert({
+            where: {
+              periodId_paymentId: {
+                periodId: period.id,
+                paymentId: payment.payment_id,
+              },
+            },
+            create: {
+              periodId: period.id,
+              accountId,
+              paymentId: payment.payment_id,
+              creditNoteNumber: payment.credit_note_number,
+              paymentDate: new Date(payment.payment_date),
+              paymentType: payment.payment_type,
+              paymentTypeDescription: payment.payment_type_description,
+              paymentMethod: payment.payment_method,
+              paymentMethodDescription: payment.payment_method_description,
+              paymentStatus: payment.payment_status,
+              paymentStatusDescription: payment.payment_status_description,
+              paymentAmount: payment.payment_amount || 0,
+              amountInThisPeriod: payment.amount_in_this_period || 0,
+              amountInOtherPeriod: payment.amount_in_other_period || 0,
+              remainingAmount: payment.remaining_amount || 0,
+              returnAmount: payment.return_amount || 0,
+              rawData: payment,
+            },
+            update: {
+              paymentDate: new Date(payment.payment_date),
+              paymentType: payment.payment_type,
+              paymentTypeDescription: payment.payment_type_description,
+              paymentMethod: payment.payment_method,
+              paymentMethodDescription: payment.payment_method_description,
+              paymentStatus: payment.payment_status,
+              paymentStatusDescription: payment.payment_status_description,
+              paymentAmount: payment.payment_amount || 0,
+              amountInThisPeriod: payment.amount_in_this_period || 0,
+              amountInOtherPeriod: payment.amount_in_other_period || 0,
+              remainingAmount: payment.remaining_amount || 0,
+              returnAmount: payment.return_amount || 0,
+              rawData: payment,
+            },
+          });
+
+          syncedCount++;
+        } catch (error) {
+          this.logger.error(`Error syncing payment ${payment.payment_id}: ${error.message}`);
+        }
+      }
+
+      this.logger.log(`Payment details sync completed: ${syncedCount} synced`);
+      return {
+        synced: syncedCount,
+        total: paymentDetails.payments.length,
+      };
+    } catch (error) {
+      this.logger.error(`Error in payment details sync: ${error.message}`);
+      throw error;
+    }
+  }
 }

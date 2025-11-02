@@ -301,6 +301,31 @@ export class MeliService {
   }
 
   /**
+   * Busca lista de pedidos do vendedor
+   */
+  async getOrders(accountId: string, options?: { limit?: number; offset?: number; sort?: string }) {
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+    });
+
+    if (!account) {
+      throw new Error('Account not found');
+    }
+
+    const { limit = 50, offset = 0, sort = 'date_desc' } = options || {};
+    
+    const params = new URLSearchParams({
+      seller: account.sellerId,
+      limit: limit.toString(),
+      offset: offset.toString(),
+      sort,
+    });
+
+    const url = `https://api.mercadolibre.com/orders/search?${params}`;
+    return this.makeAuthenticatedRequest(accountId, url);
+  }
+
+  /**
    * Busca informações de um pedido
    */
   async getOrder(accountId: string, orderId: string) {

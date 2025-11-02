@@ -10,18 +10,34 @@ export class OrdersController {
   ) {}
 
   @Get()
-  async list(@Query('accountId') accountId?: string, @Query('days') days?: string) {
-    const daysNum = days ? parseInt(days, 10) : 30;
-    const dateFrom = new Date(Date.now() - daysNum * 24 * 60 * 60 * 1000);
+  async list(
+    @Query('accountId') accountId?: string,
+    @Query('days') days?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    let dateFrom: Date;
+    let dateTo: Date;
+
+    // Se startDate e endDate forem fornecidos, usar eles
+    if (startDate && endDate) {
+      dateFrom = new Date(startDate);
+      dateTo = new Date(endDate);
+      dateTo.setHours(23, 59, 59, 999); // Incluir o dia inteiro
+    } else {
+      // Caso contrário, usar days (padrão 30)
+      const daysNum = days ? parseInt(days, 10) : 30;
+      dateFrom = new Date(Date.now() - daysNum * 24 * 60 * 60 * 1000);
+      dateTo = new Date();
+    }
 
     const where = accountId
-      ? { accountId, dateCreated: { gte: dateFrom } }
-      : { dateCreated: { gte: dateFrom } };
+      ? { accountId, dateCreated: { gte: dateFrom, lte: dateTo } }
+      : { dateCreated: { gte: dateFrom, lte: dateTo } };
 
-    const items = await this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where,
       orderBy: { dateCreated: 'desc' },
-      take: 100,
       select: {
         id: true,
         meliOrderId: true,
@@ -38,7 +54,8 @@ export class OrdersController {
       },
     });
 
-    return { items };
+    // Retornar array direto para compatibilidade com o frontend
+    return orders;
   }
 
   @Get('stats')
@@ -71,6 +88,35 @@ export class OrdersController {
       pending,
       totalAmount: totalAmount._sum.totalAmount || 0,
     };
+  }
+
+  @Post('sync')
+  async sync(
+    @Query('accountId') accountId: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    if (!accountId) {
+      return { error: 'accountId is required' };
+    }
+
+    try {
+      const result = await this.ordersService.syncAllOrders(accountId, {
+        limit: limit ? parseInt(limit) : undefined,
+        offset: offset ? parseInt(offset) : undefined,
+      });
+
+      return {
+        success: true,
+        message: `Synced ${result.synced} of ${result.total} orders`,
+        ...result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
   }
 
   @Post('resync')

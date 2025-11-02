@@ -65,9 +65,15 @@ export class TaxesController {
     }
 
     try {
-      const summary = await this.taxesService.getSummaryByCategory(accountId);
-      const total = summary.reduce((sum: number, item: any) => sum + item.total, 0);
-      return { summary, total };
+      const taxes = await this.taxesService.findAll(accountId, false);
+      const totalAmount = taxes.reduce((sum, tax) => sum + tax.amount, 0);
+      const totalTaxes = taxes.length;
+      
+      return { 
+        totalAmount, 
+        totalTaxes,
+        taxes 
+      };
     } catch (error) {
       this.logger.error(`Error fetching summary: ${error.message}`);
       return { error: error.message };

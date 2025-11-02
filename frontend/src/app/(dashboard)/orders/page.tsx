@@ -42,7 +42,8 @@ export default function OrdersPage() {
         throw new Error(`HTTP ${res.status}`);
       }
       const json = await res.json();
-      setOrders(json.items || []);
+      // Backend retorna array direto, não objeto com items
+      setOrders(Array.isArray(json) ? json : json.items || []);
     } catch (e: any) {
       setError(e?.message || String(e));
     } finally {

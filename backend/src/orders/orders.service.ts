@@ -70,6 +70,60 @@ export class OrdersService {
   }
 
   /**
+   * Sincroniza todos os pedidos do Mercado Livre
+   */
+  async syncAllOrders(accountId: string, options?: { limit?: number; offset?: number }) {
+    try {
+      const { limit = 50, offset = 0 } = options || {};
+      
+      this.logger.log(`Syncing orders for account ${accountId} (limit: ${limit}, offset: ${offset})`);
+
+      // Buscar pedidos do Mercado Livre
+      const ordersData = await this.meliService.getOrders(accountId, { limit, offset });
+      
+      if (!ordersData || !ordersData.results) {
+        return {
+          synced: 0,
+          total: 0,
+          message: 'Nenhum pedido encontrado',
+        };
+      }
+
+      let syncedCount = 0;
+      let errorCount = 0;
+      const errors = [];
+
+      for (const orderData of ordersData.results) {
+        try {
+          await this.syncOrder(accountId, orderData.id.toString());
+          syncedCount++;
+        } catch (error) {
+          this.logger.error(`Error syncing order ${orderData.id}: ${error.message}`);
+          errorCount++;
+          errors.push({
+            orderId: orderData.id,
+            error: error.message,
+          });
+        }
+      }
+
+      this.logger.log(`Orders sync completed: ${syncedCount} synced, ${errorCount} errors`);
+      
+      return {
+        synced: syncedCount,
+        errors: errorCount,
+        total: ordersData.paging?.total || ordersData.results.length,
+        hasMore: ordersData.paging?.total > (offset + limit),
+        nextOffset: offset + limit,
+        errorDetails: errors.length > 0 ? errors : undefined,
+      };
+    } catch (error) {
+      this.logger.error(`Error in orders sync: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Retorna estatísticas de pedidos
    */
   async getStats(accountId?: string, days = 30) {
