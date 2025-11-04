@@ -249,10 +249,12 @@ export class MeliService {
             this.logger.error(
               `ML API error after token refresh: ${retryResponse.status} - ${JSON.stringify(retryResponse.data)}`,
             );
-            throw new HttpException(
+            const error: any = new HttpException(
               `ML API error: ${retryResponse.status} - ${retryResponse.data.message || 'Unknown error'}`,
               retryResponse.status,
             );
+            error.response = { data: retryResponse.data };
+            throw error;
           }
 
           return retryResponse.data;
@@ -281,10 +283,13 @@ export class MeliService {
           `ML API error: ${response.status} - ${errorMessage} - Full response: ${JSON.stringify(errorData)}`,
         );
         
-        throw new HttpException(
+        // Criar erro customizado que preserva os dados da resposta
+        const error: any = new HttpException(
           `ML API error: ${response.status} - ${errorMessage}`,
           response.status,
         );
+        error.response = { data: errorData };
+        throw error;
       }
 
       return response.data;
@@ -337,7 +342,8 @@ export class MeliService {
    * Busca informações de um item/produto
    */
   async getItem(accountId: string, itemId: string) {
-    const url = `https://api.mercadolibre.com/items/${itemId}`;
+    // Adicionar parâmetro include_attributes=all para obter todos os atributos
+    const url = `https://api.mercadolibre.com/items/${itemId}?include_attributes=all`;
     return this.makeAuthenticatedRequest(accountId, url);
   }
 
