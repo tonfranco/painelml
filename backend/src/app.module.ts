@@ -16,6 +16,7 @@ import { BillingModule } from './billing/billing.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { ExtraRevenuesModule } from './extra-revenues/extra-revenues.module';
 import { TaxesModule } from './taxes/taxes.module';
+import { MessagesModule } from './messages/messages.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { TaxesModule } from './taxes/taxes.module';
     OrdersModule,
     ShipmentsModule,
     QuestionsModule,
+    MessagesModule,
     QueueModule,
     WorkersModule,
     SettingsModule,

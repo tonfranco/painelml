@@ -8,6 +8,7 @@ import {
   Package, 
   ShoppingCart, 
   MessageCircle,
+  Mail,
   Settings,
   LogOut,
   ChevronLeft,
@@ -31,6 +32,7 @@ const navigation = [
   { name: 'Pedidos', href: '/orders', icon: ShoppingCart },
   { name: 'Envios', href: '/pending-shipments', icon: Bus },
   { name: 'Perguntas', href: '/questions', icon: MessageCircle },
+  { name: 'Mensagens', href: '/messages', icon: Mail },
   { name: 'Financeiro', href: '/financial', icon: DollarSign },
   { name: 'Fluxo de Caixa', href: '/cash-flow', icon: TrendingUp },
 ];

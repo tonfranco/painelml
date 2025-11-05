@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
-  CheckCircle
+  CheckCircle,
+  MoreVertical
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -701,11 +702,11 @@ export default function ProductsManagementPage() {
                     <span className="font-bold text-blue-600">{product.sold}</span>
                   </div>
 
-                  <div className="flex gap-2 mt-3">
+                  <div className="grid grid-cols-2 gap-2 mt-3">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 text-xs"
+                      className="text-xs"
                       onClick={() => showItemDetails(product)}
                     >
                       <Info className="h-3 w-3 mr-1" />
@@ -714,7 +715,7 @@ export default function ProductsManagementPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 text-xs"
+                      className="text-xs"
                       onClick={() => {
                         setDuplicateModal({ open: true, product });
                         setTitleSuffix("");
@@ -728,7 +729,7 @@ export default function ProductsManagementPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 text-xs"
+                      className="text-xs"
                       onClick={() => {
                         if (product.status !== 'active') {
                           setErrorModal({
@@ -754,7 +755,7 @@ export default function ProductsManagementPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 text-xs"
+                      className="text-xs"
                       onClick={() => {
                         if (product.status !== 'active') {
                           setErrorModal({

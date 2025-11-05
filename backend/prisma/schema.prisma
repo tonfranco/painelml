@@ -23,6 +23,7 @@ model Account {
   orders         Order[]
   shipments      Shipment[]
   questions      Question[]
+  messages       Message[]
   settings       Settings?
   billingPeriods BillingPeriod[]
   expenses       Expense[]
@@ -144,6 +145,34 @@ model Question {
 
   @@index([accountId])
   @@index([itemId])
+  @@index([status])
+  @@index([dateCreated])
+}
+
+model Message {
+  id              String   @id @default(cuid())
+  accountId       String
+  meliMessageId   String   @unique
+  packId          String?  // ID do pacote de mensagens (conversa)
+  orderId         String?  // Relacionamento com Order
+  itemId          String?  // Relacionamento com Item
+  fromId          String   // ID do remetente
+  toId            String   // ID do destinatário
+  fromRole        String   // buyer, seller
+  toRole          String   // buyer, seller
+  text            String   // Conteúdo da mensagem
+  status          String   // read, unread
+  dateCreated     DateTime
+  dateRead        DateTime?
+  dateNotified    DateTime?
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([packId])
+  @@index([orderId])
   @@index([status])
   @@index([dateCreated])
 }

@@ -121,3 +121,39 @@ export interface SyncStatus {
   questionsProcessed?: number;
   errors?: string[];
 }
+
+export interface Message {
+  id: string;
+  accountId: string;
+  meliMessageId: string;
+  packId?: string;
+  orderId?: string;
+  itemId?: string;
+  fromId: string;
+  toId: string;
+  fromRole: 'buyer' | 'seller';
+  toRole: 'buyer' | 'seller';
+  text: string;
+  status: 'read' | 'unread';
+  dateCreated: string;
+  dateRead?: string;
+  dateNotified?: string;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface Conversation {
+  packId?: string;
+  orderId?: string;
+  itemId?: string;
+  lastMessage: string;
+  lastMessageDate: string;
+  unreadCount: number;
+  messages: Message[];
+}
+
+export interface MessagesStats {
+  total: number;
+  unread: number;
+  read: number;
+}

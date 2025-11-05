@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plano de Migração Multi-Tenant para AWS</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+        }
+        
+        .cover {
+            text-align: center;
+            padding: 100px 20px;
+            page-break-after: always;
+        }
+        
+        .cover h1 {
+            font-size: 42px;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .cover h2 {
+            font-size: 24px;
+            color: #666;
+            margin-bottom: 60px;
+            font-weight: 400;
+        }
+        
+        .cover .metadata {
+            margin-top: 80px;
+            font-size: 14px;
+            color: #888;
+        }
+        
+        .cover .metadata p {
+            margin: 10px 0;
+        }
+        
+        h1 {
+            font-size: 32px;
+            color: #1a1a1a;
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #3b82f6;
+        }
+        
+        h2 {
+            font-size: 24px;
+            color: #2563eb;
+            margin: 30px 0 15px 0;
+        }
+        
+        h3 {
+            font-size: 20px;
+            color: #1e40af;
+            margin: 25px 0 12px 0;
+        }
+        
+        h4 {
+            font-size: 16px;
+            color: #1e3a8a;
+            margin: 20px 0 10px 0;
+        }
+        
+        p {
+            margin: 12px 0;
+            text-align: justify;
+        }
+        
+        ul, ol {
+            margin: 15px 0 15px 30px;
+        }
+        
+        li {
+            margin: 8px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #3b82f6;
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        
+        .status-box {
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px 20px;
+            margin: 20px 0;
+        }
+        
+        .warning-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px 20px;
+            margin: 20px 0;
+        }
+        
+        .success-box {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 15px 20px;
+            margin: 20px 0;
+        }
+        
+        .error-box {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 15px 20px;
+            margin: 20px 0;
+        }
+        
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+        }
+        
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 13px;
+        }
+        
+        .page-break {
+            page-break-after: always;
+        }
+        
+        .emoji {
+            font-size: 1.2em;
+        }
+        
+        @media print {
+            body {
+                max-width: 100%;
+                padding: 0;
+            }
+            
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- CAPA -->
+    <div class="cover">
+        <h1><span class="emoji">📋</span> Plano de Migração Multi-Tenant para AWS</h1>
+        <h2>Sistema de Gestão Mercado Livre - Transformação SaaS</h2>
+        
+        <div class="metadata">
+            <p><strong>Documento:</strong> Plano de Migração Multi-Tenant</p>
+            <p><strong>Versão:</strong> 1.0</p>
+            <p><strong>Data:</strong> Novembro 2024</p>
+            <p><strong>Status:</strong> Planejamento</p>
+        </div>
+    </div>
+
+    <!-- SUMÁRIO EXECUTIVO -->
+    <h1><span class="emoji">🎯</span> Sumário Executivo</h1>
+    
+    <h2>Objetivo</h2>
+    <p>Transformar o sistema atual de <strong>single-tenant</strong> para uma plataforma <strong>SaaS multi-tenant</strong> escalável, capaz de atender <strong>1000+ clientes pagantes</strong> na AWS.</p>
+    
+    <h2>Situação Atual</h2>
+    <div class="error-box">
+        <ul>
+            <li>❌ Sistema preparado apenas para uso próprio</li>
+            <li>❌ Sem sistema de autenticação de usuários finais</li>
+            <li>❌ Sem isolamento de dados por tenant</li>
+            <li>❌ Estado armazenado em memória (não escalável)</li>
+            <li>❌ Banco de dados monolítico sem replicação</li>
+        </ul>
+    </div>
+    
+    <h2>Resultado Esperado</h2>
+    <div class="success-box">
+        <ul>
+            <li>✅ Plataforma SaaS multi-tenant completa</li>
+            <li>✅ Suporte para 1000+ clientes simultâneos</li>
+            <li>✅ Infraestrutura AWS escalável e resiliente</li>
+            <li>✅ Isolamento total de dados entre tenants</li>
+            <li>✅ Sistema de billing e planos</li>
+            <li>✅ Observabilidade e monitoramento completos</li>
+        </ul>
+    </div>
+    
+    <div class="status-box">
+        <h3>Prazo Total</h3>
+        <p><strong>15 semanas</strong> (3,5 meses) para implementação completa</p>
+        
+        <h3>Investimento</h3>
+        <ul>
+            <li><strong>Desenvolvimento:</strong> ~$75,000 USD</li>
+            <li><strong>Infraestrutura AWS:</strong> ~$1,620 USD/mês</li>
+            <li><strong>Total primeiro ano:</strong> ~$94,440 USD</li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- ANÁLISE DA SITUAÇÃO ATUAL -->
+    <h1><span class="emoji">📊</span> Análise da Situação Atual</h1>
+    
+    <h2>❌ Problemas Críticos Identificados</h2>
+    
+    <h3>1. Ausência de Isolamento Multi-Tenant</h3>
+    <p><strong>Problema:</strong> Não há modelo de User ou Tenant separado. Cada conta do ML é tratada como entidade isolada.</p>
+    <p><strong>Faltam:</strong></p>
+    <ul>
+        <li>Sistema de autenticação de usuários finais (seus clientes)</li>
+        <li>Modelo de assinatura/billing para seus clientes</li>
+        <li>Controle de acesso baseado em roles (RBAC)</li>
+        <li>Isolamento de dados por tenant</li>
+    </ul>
+    <p><strong>Impacto:</strong> Impossível vender como SaaS sem refatoração completa.</p>
+    
+    <h3>2. Banco de Dados Monolítico</h3>
+    <p><strong>Configuração Atual:</strong></p>
+    <pre>DATABASE_URL="postgresql://painelml:dev_password_123@localhost:5432/painelml"</pre>
+    <p><strong>Problemas:</strong></p>
+    <ul>
+        <li>Uma única instância PostgreSQL local</li>
+        <li>Sem connection pooling configurado</li>
+        <li>Sem read replicas</li>
+        <li>Sem estratégia de sharding</li>
+        <li>Sem backup automático</li>
+    </ul>
+    <p><strong>Impacto:</strong> Não suporta carga de 1000+ clientes.</p>
+    
+    <h3>3. Estado em Memória</h3>
+    <p><strong>Problema:</strong> Estado OAuth armazenado em memória local.</p>
+    <p><strong>Impacto:</strong> Não funciona em ambiente distribuído (múltiplas instâncias).</p>
+    
+    <h3>4. Falta de Observabilidade</h3>
+    <p><strong>Faltam:</strong></p>
+    <ul>
+        <li>APM (Application Performance Monitoring)</li>
+        <li>Distributed tracing</li>
+        <li>Métricas de negócio</li>
+        <li>Alertas configurados</li>
+        <li>Health checks</li>
+    </ul>
+    <p><strong>Impacto:</strong> Impossível diagnosticar problemas em produção.</p>
+    
+    <h2>✅ Pontos Positivos</h2>
+    <div class="success-box">
+        <ol>
+            <li>✅ <strong>Tokens criptografados</strong> (AES-256-GCM) - segurança já implementada</li>
+            <li>✅ <strong>Estrutura modular</strong> (NestJS) - facilita refatoração</li>
+            <li>✅ <strong>ORM Prisma</strong> - migrations e type-safety</li>
+            <li>✅ <strong>Webhooks com dedupe</strong> - processamento idempotente</li>
+            <li>✅ <strong>Docker Compose</strong> - ambiente padronizado</li>
+            <li>✅ <strong>Funcionalidades core</strong> - integração ML funcional</li>
+        </ol>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- FASES DO PROJETO -->
+    <h1><span class="emoji">📅</span> Fases do Projeto</h1>
+    
+    <h2>FASE 1: Fundação Multi-Tenant (3 semanas)</h2>
+    <p><strong>Objetivo:</strong> Criar a base de multi-tenancy sem quebrar funcionalidades existentes.</p>
+    
+    <h3>1.1 Modelagem de Dados</h3>
+    <p><strong>Novos Modelos:</strong></p>
+    <ul>
+        <li>Tenant (clientes/empresas)</li>
+        <li>User (usuários de cada tenant)</li>
+        <li>Session (autenticação)</li>
+        <li>Subscription (billing)</li>
+        <li>ApiKey (integrações)</li>
+        <li>AuditLog (auditoria)</li>
+    </ul>
+    
+    <h3>1.2 Autenticação e Autorização</h3>
+    <p><strong>Implementar:</strong></p>
+    <ul>
+        <li>JWT strategy (access + refresh tokens)</li>
+        <li>Guards: Auth, Roles, Tenant</li>
+        <li>Decorators: @Auth(), @CurrentUser(), @CurrentTenant()</li>
+        <li>Endpoints: login, register, refresh, logout</li>
+    </ul>
+    
+    <h3>1.3 Middleware de Tenant Isolation</h3>
+    <ul>
+        <li>Interceptor global que injeta tenantId</li>
+        <li>Validação de acesso cross-tenant</li>
+        <li>Audit log de acessos</li>
+    </ul>
+    
+    <h2>FASE 2: Frontend Multi-Tenant (2 semanas)</h2>
+    <p><strong>Objetivo:</strong> Criar interface de autenticação e gestão de tenants.</p>
+    
+    <h3>2.1 Sistema de Autenticação</h3>
+    <ul>
+        <li>/login - Login de usuários</li>
+        <li>/register - Registro de tenants</li>
+        <li>/forgot-password - Recuperação</li>
+        <li>/reset-password - Reset</li>
+    </ul>
+    
+    <h3>2.2 Billing e Planos</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Plano</th>
+                <th>Preço/mês</th>
+                <th>Contas ML</th>
+                <th>Features</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Free</strong></td>
+                <td>$0</td>
+                <td>1</td>
+                <td>Básico, 30 dias histórico</td>
+            </tr>
+            <tr>
+                <td><strong>Basic</strong></td>
+                <td>$29</td>
+                <td>3</td>
+                <td>+ Relatórios, 90 dias</td>
+            </tr>
+            <tr>
+                <td><strong>Pro</strong></td>
+                <td>$99</td>
+                <td>10</td>
+                <td>+ API, 1 ano histórico</td>
+            </tr>
+            <tr>
+                <td><strong>Enterprise</strong></td>
+                <td>Custom</td>
+                <td>Ilimitado</td>
+                <td>+ Suporte, SLA</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <h2>FASE 3: Infraestrutura AWS (3 semanas)</h2>
+    <p><strong>Objetivo:</strong> Preparar ambiente de produção escalável.</p>
+    
+    <h3>3.1 Banco de Dados - RDS PostgreSQL</h3>
+    <ul>
+        <li>Instância: db.r6g.xlarge Multi-AZ</li>
+        <li>Storage: 500GB GP3 (auto-scaling até 2TB)</li>
+        <li>2 read replicas</li>
+        <li>RDS Proxy (connection pooling)</li>
+        <li>Automated backups (7 dias)</li>
+    </ul>
+    
+    <h3>3.2 Cache - ElastiCache Redis</h3>
+    <ul>
+        <li>cache.r6g.large (2 nodes)</li>
+        <li>Cluster mode enabled</li>
+        <li>Encryption in-transit + at-rest</li>
+    </ul>
+    
+    <h3>3.3 Containerização - ECS Fargate</h3>
+    <ul>
+        <li>API: 2 vCPU, 4GB (2-20 tasks)</li>
+        <li>Workers: 1 vCPU, 2GB (1-10 tasks)</li>
+        <li>Auto-scaling: CPU > 70%</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <!-- ESTIMATIVAS DE CUSTO -->
+    <h1><span class="emoji">💰</span> Estimativas de Custo</h1>
+    
+    <h2>Desenvolvimento (15 semanas)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Fase</th>
+                <th>Duração</th>
+                <th>Custo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Fase 1: Multi-Tenant</td>
+                <td>3 semanas</td>
+                <td>$15,000</td>
+            </tr>
+            <tr>
+                <td>Fase 2: Frontend</td>
+                <td>2 semanas</td>
+                <td>$10,000</td>
+            </tr>
+            <tr>
+                <td>Fase 3: AWS</td>
+                <td>3 semanas</td>
+                <td>$15,000</td>
+            </tr>
+            <tr>
+                <td>Fase 4: Observabilidade</td>
+                <td>2 semanas</td>
+                <td>$10,000</td>
+            </tr>
+            <tr>
+                <td>Fase 5: Segurança</td>
+                <td>2 semanas</td>
+                <td>$10,000</td>
+            </tr>
+            <tr>
+                <td>Fase 6: Testes</td>
+                <td>2 semanas</td>
+                <td>$10,000</td>
+            </tr>
+            <tr>
+                <td>Fase 7: Migration</td>
+                <td>1 semana</td>
+                <td>$5,000</td>
+            </tr>
+            <tr style="background-color: #dbeafe; font-weight: bold;">
+                <td>TOTAL</td>
+                <td>15 semanas</td>
+                <td>$75,000</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <h2>Infraestrutura AWS (mensal)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Serviço</th>
+                <th>Configuração</th>
+                <th>Custo/mês</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>RDS PostgreSQL</td>
+                <td>db.r6g.xlarge Multi-AZ</td>
+                <td>$500</td>
+            </tr>
+            <tr>
+                <td>ElastiCache Redis</td>
+                <td>cache.r6g.large (2 nodes)</td>
+                <td>$300</td>
+            </tr>
+            <tr>
+                <td>ECS Fargate</td>
+                <td>10 tasks (2 vCPU, 4GB)</td>
+                <td>$400</td>
+            </tr>
+            <tr>
+                <td>ALB + CloudFront</td>
+                <td>1 ALB + CDN</td>
+                <td>$150</td>
+            </tr>
+            <tr>
+                <td>S3 + Storage</td>
+                <td>500GB + backups</td>
+                <td>$100</td>
+            </tr>
+            <tr>
+                <td>SQS + EventBridge</td>
+                <td>100M requests</td>
+                <td>$50</td>
+            </tr>
+            <tr>
+                <td>CloudWatch</td>
+                <td>Logs + Metrics</td>
+                <td>$100</td>
+            </tr>
+            <tr>
+                <td>Outros</td>
+                <td>WAF, X-Ray, Secrets</td>
+                <td>$120</td>
+            </tr>
+            <tr style="background-color: #dbeafe; font-weight: bold;">
+                <td colspan="2">TOTAL</td>
+                <td>$1,620</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div class="status-box">
+        <h3>Custo Total Primeiro Ano</h3>
+        <ul>
+            <li>Desenvolvimento: $75,000</li>
+            <li>AWS (12 meses): $19,440</li>
+            <li><strong>TOTAL: $94,440</strong></li>
+        </ul>
+        
+        <h3>Break-even</h3>
+        <p>Com plano Basic ($29/mês):</p>
+        <ul>
+            <li>56 clientes pagantes = break-even mensal AWS</li>
+            <li>270 clientes pagantes = break-even total ano 1</li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- RISCOS E MITIGAÇÕES -->
+    <h1><span class="emoji">🚨</span> Riscos e Mitigações</h1>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Risco</th>
+                <th>Prob.</th>
+                <th>Impacto</th>
+                <th>Mitigação</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Data loss na migração</td>
+                <td>Baixa</td>
+                <td>Crítico</td>
+                <td>Backups + dry-run + validação</td>
+            </tr>
+            <tr>
+                <td>Downtime prolongado</td>
+                <td>Média</td>
+                <td>Alto</td>
+                <td>Blue-green deployment</td>
+            </tr>
+            <tr>
+                <td>Custos AWS acima do esperado</td>
+                <td>Alta</td>
+                <td>Médio</td>
+                <td>Monitoramento + alertas de budget</td>
+            </tr>
+            <tr>
+                <td>Bugs de isolamento de tenant</td>
+                <td>Média</td>
+                <td>Crítico</td>
+                <td>Testes extensivos + code review</td>
+            </tr>
+            <tr>
+                <td>Performance degradada</td>
+                <td>Média</td>
+                <td>Alto</td>
+                <td>Load tests + auto-scaling</td>
+            </tr>
+            <tr>
+                <td>Problemas de segurança</td>
+                <td>Baixa</td>
+                <td>Crítico</td>
+                <td>Penetration testing + audit</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- MÉTRICAS DE SUCESSO -->
+    <h1><span class="emoji">🎯</span> Métricas de Sucesso</h1>
+    
+    <h2>Técnicas</h2>
+    <div class="success-box">
+        <ul>
+            <li>✅ Latência p99 &lt; 500ms</li>
+            <li>✅ Uptime &gt; 99.9%</li>
+            <li>✅ Zero data leaks entre tenants</li>
+            <li>✅ Auto-scaling funcional</li>
+            <li>✅ Recovery time &lt; 15min</li>
+            <li>✅ Test coverage &gt; 70%</li>
+        </ul>
+    </div>
+    
+    <h2>Negócio</h2>
+    <div class="success-box">
+        <ul>
+            <li>✅ Suportar 1000+ tenants</li>
+            <li>✅ Onboarding &lt; 5min</li>
+            <li>✅ Churn rate &lt; 5%</li>
+            <li>✅ NPS &gt; 50</li>
+            <li>✅ Break-even em 12 meses</li>
+        </ul>
+    </div>
+
+    <!-- PRÓXIMOS PASSOS -->
+    <h1><span class="emoji">📋</span> Próximos Passos</h1>
+    
+    <h2>Decisões Necessárias</h2>
+    <p>Antes de começar, você precisa decidir:</p>
+    
+    <ol>
+        <li><strong>Qual opção de implementação?</strong>
+            <ul>
+                <li>A: Completa (15 semanas)</li>
+                <li>B: MVP Multi-Tenant (4 semanas)</li>
+                <li>C: Incremental (20 semanas)</li>
+            </ul>
+        </li>
+        <li><strong>Modelo de billing?</strong> (Stripe, Paddle, manual)</li>
+        <li><strong>Planos e preços?</strong> (Free, Basic, Pro, Enterprise)</li>
+        <li><strong>Região AWS?</strong> (us-east-1, sa-east-1)</li>
+        <li><strong>Manter dados atuais?</strong> (migrar ou começar do zero)</li>
+        <li><strong>Prioridade de features?</strong> (must-have vs nice-to-have)</li>
+    </ol>
+    
+    <div class="status-box">
+        <h3>Recomendação</h3>
+        <p><strong>Opção A (Completa)</strong> é recomendada para:</p>
+        <ul>
+            <li>Sistema enterprise-ready</li>
+            <li>Suporte real a 1000+ clientes</li>
+            <li>Segurança e compliance</li>
+            <li>Observabilidade completa</li>
+        </ul>
+    </div>
+    
+    <div class="page-break"></div>
+    
+    <div style="text-align: center; padding: 50px 20px;">
+        <h2>📞 Documento Preparado</h2>
+        <p><strong>Data:</strong> Novembro 2024</p>
+        <p><strong>Status:</strong> Aguardando aprovação para início</p>
+        <p><strong>Próxima revisão:</strong> Após aprovação das decisões</p>
+    </div>
+    
+    <div class="no-print" style="position: fixed; bottom: 20px; right: 20px; background: white; padding: 15px; border: 2px solid #3b82f6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <p style="margin: 0 0 10px 0;"><strong>💡 Para gerar PDF:</strong></p>
+        <p style="margin: 0; font-size: 13px;">Pressione <code>Cmd+P</code> (Mac) ou <code>Ctrl+P</code> (Windows)</p>
+        <p style="margin: 5px 0 0 0; font-size: 13px;">Selecione "Salvar como PDF"</p>
+    </div>
+</body>
+</html>

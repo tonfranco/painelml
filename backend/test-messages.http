@@ -1,0 +1,12 @@
+### Test Messages Sync
+POST http://localhost:4000/messages/sync?accountId=YOUR_ACCOUNT_ID
+Content-Type: application/json
+
+### Test Messages Stats
+GET http://localhost:4000/messages/stats?accountId=YOUR_ACCOUNT_ID
+
+### Test Messages List
+GET http://localhost:4000/messages?accountId=YOUR_ACCOUNT_ID
+
+### Test Conversations
+GET http://localhost:4000/messages/conversations?accountId=YOUR_ACCOUNT_ID
